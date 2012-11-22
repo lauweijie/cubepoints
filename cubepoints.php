@@ -74,7 +74,7 @@ class CubePoints {
 	 * @params	$network_wide	True if WPMU superadmin uses "Network Activate" action, false if WPMU is disabled or plugin is activated on an individual blog 
 	 */
 	public function activate( $network_wide ) {
-		// check if it is a network activation - if so, run the activation function for each blog id
+		// check if it is network-wide; if so, run the activation function for each blog id
 		if( function_exists('is_multisite') && is_multisite() && $network_wide ){
 			global $wpdb;
 			$curr_blogid = $wpdb->blogid;
@@ -110,7 +110,7 @@ class CubePoints {
 				);";
 			require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
 			dbDelta($sql);
-			$this->update_option('cp_db_version', 1);
+			$this->update_option('db_version', 1);
 		}
 		
 		// adds default options
@@ -127,7 +127,7 @@ class CubePoints {
 		foreach( $options as $option_name => $option_value )
 			$this->update_option( $option_name, $option_value );
 
-	} // end activate_do
+	} // end _activate
 
 	/**
 	 * Fired when the plugin is deactivated.
@@ -144,9 +144,50 @@ class CubePoints {
 	 * @params	$network_wide	True if WPMU superadmin uses "Network Activate" action, false if WPMU is disabled or plugin is activated on an individual blog 
 	 */
 	public function uninstall( $network_wide ) {
-		// TODO define uninstall functionality here
-
+		// check if it is network-wide; if so, run the uninstall function for each blog id
+		if( function_exists('is_multisite') && is_multisite() && $network_wide ){
+			global $wpdb;
+			$curr_blogid = $wpdb->blogid;
+			$blogids = $wpdb->get_col($wpdb->prepare("SELECT blog_id FROM $wpdb->blogs"));
+			foreach($blogids as $blogid){
+				switch_to_blog($blogid);
+				$this->_uninstall();
+			}
+			switch_to_blog($curr_blogid);
+		} else {
+			$this->_uninstall();
+		}
 	} // end uninstall
+
+	/**
+	 * Removes plugin options and database.
+	 */
+	private function _uninstall() {
+		
+		// TODO test uninstall
+		
+		// removes database
+		global $wpdb;
+		$sql = "DROP TABLE '" . $this->db_name . "';" ;
+		$wpdb->query($sql);
+		$this->remove_option('cp_db_version', 0);
+		}
+		
+		// removes plugin options
+		$options = array(
+			'auth_key',
+			'version',
+			'prefix',
+			'suffix',
+			'comment_points',
+			'del_comment_points',
+			'reg_points',
+			'post_points'
+		);
+		foreach( $options as $option_name )
+			$this->remove_option( $option_name );
+
+	} // end _uninstall
 
 	/**
 	 * Loads the plugin text domain for translation
@@ -231,7 +272,6 @@ class CubePoints {
 
 	} // end get_option
 
-
 	/**
 	 * Updates a named option with specified value.
 	 * 
@@ -247,6 +287,22 @@ class CubePoints {
 		return update_option( $option, $new_value );
 
 	} // end update_option
+
+	/**
+	 * Removes a named option.
+	 * 
+	 * @param $option Name of the option to remove.
+	 */
+	function remove_option($option) {
+
+		// TODO update return value description
+
+		// prefix options to prevent namespace conflicts
+		$option = 'cubepoints_' . $option;
+
+		return remove_option( $option );
+
+	} // end remove_option
 
 	/*--------------------------------------------*
 	 * Core Functions
