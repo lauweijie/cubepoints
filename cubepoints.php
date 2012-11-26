@@ -278,4 +278,6 @@ class CubePoints {
 
 } // end class
 
-$cubepoints = new CubePoints();
+if ( function_exists( 'add_action' ) ) {
+	$cubepoints = new CubePoints();
+}
