@@ -170,7 +170,7 @@ class CubePoints {
 		global $wpdb;
 		$sql = "DROP TABLE '" . $this->db_name . "';" ;
 		$wpdb->query($sql);
-		$this->remove_option('cp_db_version', 0);
+		$this->remove_option('cp_db_version');
 		}
 		
 		// removes plugin options
