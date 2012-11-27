@@ -29,6 +29,12 @@ License:
 class CubePoints {
 
 	/*--------------------------------------------*
+	 * Properties
+	 *--------------------------------------------*/
+
+	private $loaded_modules = array();
+
+	/*--------------------------------------------*
 	 * Constructor
 	 *--------------------------------------------*/
 	
@@ -36,6 +42,9 @@ class CubePoints {
 	 * Initializes the plugin by setting localization, filters, and administration functions.
 	 */
 	function __construct() {
+	
+		// load modules
+		$this->_loadModules();
 		
 		// load plugin text domain
 		add_action( 'init', array( $this, 'textdomain' ) );
@@ -65,13 +74,15 @@ class CubePoints {
 	     */
 	    add_action( 'TODO', array( $this, 'action_method_name' ) );
 	    add_filter( 'TODO', array( $this, 'filter_method_name' ) );
+		
+		do_action( 'cubepoints_loaded' );
 
 	} // end constructor
 
 	/**
 	 * Fired when the plugin is activated.
 	 *
-	 * @params	$network_wide	True if WPMU superadmin uses "Network Activate" action, false if WPMU is disabled or plugin is activated on an individual blog 
+	 * @params	$network_wide	True if WPMU superadmin uses "Network Activate" action, false if WPMU is disabled or plugin is activated on an individual blog.
 	 */
 	public function activate( $network_wide ) {
 		// check if it is network-wide; if so, run the activation function for each blog id
@@ -91,48 +102,49 @@ class CubePoints {
 
 	/**
 	 * Sets up default options and creates database.
+	 *
+	 * @access private
 	 */
 	private function _activate() {
-		
 		// creates database
 		global $wpdb;
-		if( (int) $this->get_option('db_version', 0) < 1 ) {
-			$sql = "CREATE TABLE '" . $this->db_name . "' (
+		if( (int) $this->getOption('db_version', 0) < 1 || $wpdb->get_var("SHOW TABLES LIKE '" . $this->dbName() . "'") != $this->dbName() ) {
+			$sql = "CREATE TABLE " . $this->dbName() . " (
 				  id bigint(20) NOT NULL AUTO_INCREMENT,
 				  uid bigint(20) NOT NULL,
 				  type VARCHAR(256) NOT NULL,
-				  data TEXT NOT NULL,
-				  key1 VARCHAR(256) NOT NULL,
-				  key2 VARCHAR(256) NOT NULL,
+				  data1 TEXT NOT NULL,
+				  data2 TEXT NOT NULL,
+				  data3 TEXT NOT NULL,
 				  points bigint(20) NOT NULL,
 				  timestamp bigint(20) NOT NULL,
 				  UNIQUE KEY id (id)
 				);";
 			require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
 			dbDelta($sql);
-			$this->update_option('db_version', 1);
+			$this->updateOption('db_version', 1);
 		}
 		
 		// adds default options
 		$options = array(
 			'auth_key' => substr( md5(uniqid()) , 3 , 10 ),
-			'version' => $this->get_version(),
+			'version' => $this->getVersion(),
 			'prefix' => '$',
 			'suffix' => '',
+			'activated_modules' => array(),
 			'comment_points' => 5,
 			'del_comment_points' => 5,
 			'reg_points' => 100,
 			'post_points' => 20
 		);
 		foreach( $options as $option_name => $option_value )
-			$this->update_option( $option_name, $option_value );
-
+			$this->updateOption( $option_name, $option_value );
 	} // end _activate
 
 	/**
 	 * Fired when the plugin is deactivated.
 	 *
-	 * @params	$network_wide	True if WPMU superadmin uses "Network Activate" action, false if WPMU is disabled or plugin is activated on an individual blog 
+	 * @params	$network_wide	True if WPMU superadmin uses "Network Activate" action, false if WPMU is disabled or plugin is activated on an individual blog.
 	 */
 	public function deactivate( $network_wide ) {
 		// TODO define deactivation functionality here		
@@ -141,7 +153,7 @@ class CubePoints {
 	/**
 	 * Fired when the plugin is uninstalled.
 	 *
-	 * @params	$network_wide	True if WPMU superadmin uses "Network Activate" action, false if WPMU is disabled or plugin is activated on an individual blog 
+	 * @params	$network_wide	True if WPMU superadmin uses "Network Activate" action, false if WPMU is disabled or plugin is activated on an individual blog.
 	 */
 	public function uninstall( $network_wide ) {
 		// check if it is network-wide; if so, run the uninstall function for each blog id
@@ -161,6 +173,8 @@ class CubePoints {
 
 	/**
 	 * Removes plugin options and database.
+	 *
+	 * @access private
 	 */
 	private function _uninstall() {
 		
@@ -168,10 +182,9 @@ class CubePoints {
 		
 		// removes database
 		global $wpdb;
-		$sql = "DROP TABLE '" . $this->db_name . "';" ;
+		$sql = "DROP TABLE '" . $this->dbName() . "';" ;
 		$wpdb->query($sql);
-		$this->remove_option('cp_db_version');
-		}
+		$this->deleteOption('cp_db_version');
 		
 		// removes plugin options
 		$options = array(
@@ -185,7 +198,7 @@ class CubePoints {
 			'post_points'
 		);
 		foreach( $options as $option_name )
-			$this->remove_option( $option_name );
+			$this->deleteOption( $option_name );
 
 	} // end _uninstall
 
@@ -239,101 +252,401 @@ class CubePoints {
 	/**
 	 * Returns current plugin version.
 	 * 
-	 * @return string Plugin version
+	 * @return string Plugin version.
 	 */
-	public function get_version() {
+	public function getVersion() {
 		if ( ! function_exists( 'get_plugins' ) )
 			require_once( ABSPATH . 'wp-admin/includes/plugin.php' );
 		$plugin_folder = get_plugins( '/' . plugin_basename( dirname( __FILE__ ) ) );
 		$plugin_file = basename( ( __FILE__ ) );
 		return $plugin_folder[$plugin_file]['Version'];
-	} // end get_version
+	} // end getVersion
 
 	/**
 	 * Returns the database name
 	 */
-	public function db_name() {
+	public function dbName() {
+		global $wpdb;
 		return $wpdb->base_prefix . 'cubepoints';
-	} // end db_name
+	} // end dbName
 
 	/**
 	 * Returns values for a named option.
 	 * 
-	 * @param $option Name of the option to retrieve.
-	 * @param $default Optional. The default value to return if no value is returned. Default false.
+	 * @param string $option Name of the option to retrieve.
+	 * @param mixed $default Optional. The default value to return if no value is returned. Default false.
 	 * @return mixed Values for the option.
 	 */
-	function get_option($option, $default) {
+	public function getOption( $option, $default = false ) {
 
 		// prefix options to prevent namespace conflicts
 		$option = 'cubepoints_' . $option;
 
 		return get_option( $option, $default );
 
-	} // end get_option
+	} // end getOption
 
 	/**
 	 * Updates a named option with specified value.
 	 * 
-	 * @param $option Name of the option to update.
-	 * @param $new_value The new value for this option name.
+	 * @param string $option Name of the option to update.
+	 * @param mixed $new_value The new value for this option name.
 	 * @return bool True if option value has changed, false if not or if update failed.
 	 */
-	function update_option($option, $new_value) {
+	public function updateOption( $option, $new_value ) {
 
 		// prefix options to prevent namespace conflicts
 		$option = 'cubepoints_' . $option;
 
 		return update_option( $option, $new_value );
 
-	} // end update_option
+	} // end updateOption
 
 	/**
 	 * Removes a named option.
 	 * 
-	 * @param $option Name of the option to remove.
+	 * @param string $option Name of the option to remove.
+	 * @return bool True if the option has been successfully deleted, otherwise false.
 	 */
-	function remove_option($option) {
-
-		// TODO update return value description
+	public function deleteOption( $option ) {
 
 		// prefix options to prevent namespace conflicts
 		$option = 'cubepoints_' . $option;
 
-		return remove_option( $option );
+		return delete_option( $option );
 
-	} // end remove_option
+	} // end deleteOption
 
 	/*--------------------------------------------*
 	 * Core Functions
 	 *---------------------------------------------*/
 
 	/**
- 	 * Note:  Actions are points in the execution of a page or process
-	 *        lifecycle that WordPress fires.
-	 *
-	 *		  WordPress Actions: http://codex.wordpress.org/Plugin_API#Actions
-	 *		  Action Reference:  http://codex.wordpress.org/Plugin_API/Action_Reference
-	 *
+	 * Gets difference in time.
+	 * 
+	 * @param int $timestamp Unix timestamp.
+	 * @return string Relative time difference between given timestamp and current time.
 	 */
-	function action_method_name() {
-    	// TODO define your action method here
-	} // end action_method_name
+	public function relativeTime( $timestamp ) {
+		$diff = abs( time() - $timestamp );
+
+		if ($diff > 0) {
+			$chunks = array(
+				array(31536000, __('year', 'cubepoints'), __('years', 'cubepoints')),
+				array(2592000, __('month', 'cubepoints'), __('months', 'cubepoints')),
+				array(604800, __('week', 'cubepoints'), __('weeks', 'cubepoints')),
+				array(86400, __('day', 'cubepoints'), __('days', 'cubepoints')),
+				array(3600, __('hour', 'cubepoints'), __('hours', 'cubepoints')),
+				array(60, __('min', 'cubepoints'), __('mins', 'cubepoints')),
+				array(1, __('sec', 'cubepoints'), __('secs', 'cubepoints'))
+			);
+			for ($i = 0, $j = count($chunks); $i < $j; $i++) {
+				$seconds = $chunks[$i][0];
+				if (($count = floor($diff / $seconds)) != 0) {
+					break;
+				}
+			}
+			$name = ($count == 1) ? $chunks[$i][1] : $chunks[$i][2];
+		}
+		else {
+			$count = 0;
+			$name = 'secs';
+		}
+
+		if( time() > $timestamp ) {
+			return sprintf(__('%d %s ago', 'cubepoints'), $count, $name);
+		} else {
+			return sprintf(__('%d %s to go', 'cubepoints'), $count, $name);
+		}
+	} // end relativeTime
 
 	/**
-	 * Note:  Filters are points of execution in which WordPress modifies data
-	 *        before saving it or sending it to the browser.
-	 *
-	 *		  WordPress Filters: http://codex.wordpress.org/Plugin_API#Filters
-	 *		  Filter Reference:  http://codex.wordpress.org/Plugin_API/Filter_Reference
-	 *
+	 * Gets ID of the current logged in user.
+	 * 
+	 * @return int|bool ID of the current logged in user. False if no user logged in.
 	 */
-	function filter_method_name() {
-	    // TODO define your filter method here
-	} // end filter_method_name
+	public function currentUserId() {
+		if( ! is_user_logged_in() ){
+			global $current_user;
+			get_currentuserinfo();
+			return $current_user->ID;
+		}
+		else {
+			return false;
+		}
+	} // end currentUserId
 
-} // end class
+	/**
+	 * Gets number of points for a specifed user.
+	 * 
+	 * @param int $user_id User ID to retrieve points for.
+	 * @return int Number of points for the user specified.
+	 */
+	public function getPoints( $user_id ) {
+		$points = get_user_meta($user_id, 'cubepoints', 1);
+		if ($points == '') {
+			return 0;
+		} else {
+			return (int) $points;
+		}
+	} // end getPoints
+
+	/**
+	 * Sets the number of points for a specifed user.
+	 * 
+	 * @param int $user_id User ID to set points for
+	 * @param int $points Number of points to set
+	 * @return void
+	 */
+	public function setPoints( $user_id, $points ) {
+		update_user_meta($uid, 'cubepoints', $points);
+	} // end setPoints
+
+	/**
+	 * Adds or subtracts a certain number of points from a specifed user.
+	 * 
+	 * @param int $user_id User ID to set points for.
+	 * @param int $points Number of points to add.
+	 * @return void
+	 */
+	public function alterPoints( $user_id, $points ){
+		$this->setPoints( $user_id , $this->getPoints($user_id) + $points );
+	} // end addPoints
+
+	/**
+	 * Adds the prefix and suffix to a given number of points
+	 * 
+	 * @param int $points Number of points.
+	 * @return string Points with prefix and suffix.
+	 */
+	public function formatPoints( $points ){
+		if($points == 0) { $points = '0'; }
+		return $this->getOption('cp_prefix') . $points . $this->getOption('cp_suffix');
+	} //end formatPoints
+
+	/**
+	 * Prints the number of points a specified user has
+	 * 
+	 * @param int $user_id Optional. User ID to retrieve points for. Defaults to current logged in user.
+	 * @param bool $print Optional. True to print. Default true.
+	 * @param bool $format Optional. True to format with point prefix and suffix. Default true.
+	 * @return string Number of points for display.
+	 */
+	public function displayPoints( $user_id = null , $print = true , $format = true ) {
+		if ( $user_id == null ) {
+			$user_id = $this->currentUserId();
+		}
+		$points = $this->getPoints( $user_id );
+		if ( $format ) {
+			$points = $this->formatPoints( $points );
+		}
+		if ( $print ) {
+			echo $points;
+		}
+		return $points;
+	} // end displayPoints
+
+	/**
+	 * Adds transaction to logs database
+	 * 
+	 * @access private
+	 *
+	 * @param string $type An ID used internally by CubePoints to determine the type of transaction.
+	 * @param int $user_id User ID of which the transaction belongs to.
+	 * @param int $points Number of points added or removed.
+	 * @param mixed $data1 Optional. Any supplementary data associated with transaction.
+	 * @param mixed $data2 Optional. Any supplementary data associated with transaction.
+	 * @param mixed $data3 Optional. Any supplementary data associated with transaction.
+	 * @return void
+	 */
+	public function _addLog( $type, $user_id, $points, $data1 = null, $data2 = null, $data3 = null ){
+		list($data1, $data2, $data3) = array_map('serialize', array($data1, $data2, $data3));
+		global $wpdb;
+		$wpdb->query("INSERT INTO `" . $this->dbName() . "` (`uid`, `type`, `data1`, `data2`, `data3`, `points`, `timestamp`) " .
+					  "VALUES ('".$user_id."', '".$type."', '".$data1."', '".$data2."', '".$data3."', '".$points."', ".time().");");
+	} // end _addLog
+
+	/**
+	 * Adds or subtracts points from a specified user and logs the transaction to the database
+	 *
+	 * @param string $type An ID used internally by CubePoints to determine the type of transaction.
+	 * @param int $user_id ID of user to add or subtract points from.
+	 * @param int $points Number of points added or removed.
+	 * @param mixed $data1 Optional. Any supplementary data associated with transaction.
+	 * @param mixed $data2 Optional. Any supplementary data associated with transaction.
+	 * @param mixed $data3 Optional. Any supplementary data associated with transaction.
+	 * @return void
+	 */
+	public function addPoints( $type, $user_id, $points, $data1 = null, $data2 = null, $data3 = null ){
+		$continue = true;
+		$points = apply_filters( 'cubepoints_addPoints', $type, $user_id, $points, $data1, $data2, $data3, $continue );
+		if( $continue ) {
+			$this->alterPoints( $user_id, $points );
+			$this->_addLog( $type, $user_id, $points, $data1, $data2, $data3 );
+			do_action( 'cubepoints_addPoints', $type, $user_id, $points, $data1, $data2, $data3 );
+		}
+	} // end addPoints
+
+	/**
+	 * Updates the number of points a specified user has and logs the transaction to the database
+	 *
+	 * @param string $type An ID used internally by CubePoints to determine the type of transaction.
+	 * @param int $user_id ID of user to update points from.
+	 * @param int $points Number of points to set.
+	 * @param mixed $data1 Optional. Any supplementary data associated with transaction.
+	 * @param mixed $data2 Optional. Any supplementary data associated with transaction.
+	 * @param mixed $data3 Optional. Any supplementary data associated with transaction.
+	 * @return void
+	 */
+	public function updatePoints( $type, $user_id, $points, $data1 = null, $data2 = null, $data3 = null ){
+		$pointsToAdd = $points - $this->getPoints( $user_id );
+		addPoints( $type, $user_id, $pointsToAdd, $data1, $data2, $data3 );
+	} // end updatePoints
+
+	/**
+	 * Gets the object of module specified if loaded
+	 *
+	 * @param string $module Name of module.
+	 * @return object|null Object if module specified is loaded. Null if otherwise.
+	 */
+	public function module( $module ) {
+		if( $this->moduleLoaded( $module ) )
+			return $this->loaded_modules[$module];
+		else
+			return null;
+	}
+
+	/**
+	 * Loads a specified module by instantiating the class and running the module
+	 *
+	 * @access private
+	 *
+	 * @param string $module Name of module.
+	 * @return bool True if module loaded successfully. False if otherwise.
+	 */
+	private function _loadModule( $module ) {
+		if( $this->moduleLoaded( $module ) )
+			return false;
+
+		if( ! class_exists( $module ) ) {
+			$this->deactivateModule( $module );
+			return false;
+		}
+
+		if( ! is_subclass_of( $module, 'CubePointsModule' ) )
+			return false;
+
+		do_action( 'cubepoints_module_prerun', get_class($this) );
+		do_action( 'cubepoints_module_' . get_class($this) . '_prerun' );
+
+		$this->loaded_modules[$module] = new $module;
+		$this->loaded_modules[$module]->main();
+
+		do_action( 'cubepoints_module_postrun', get_class($this) );
+		do_action( 'cubepoints_module_' . get_class($this) . '_postrun' );
+
+		return true;
+	}
+
+	/**
+	 * Checks if a specified module is loaded
+	 *
+	 * @return bool True if module is loaded. False if otherwise.
+	 */
+	public function moduleLoaded( $name ) {
+		return isset( $this->loaded_modules[$name] );
+	}
+
+	/**
+	 * Includes all module files in the modules directory
+	 *
+	 * @access private
+	 *
+	 * @return void
+	 */
+	private function _includeModules() {
+		$modules = array_merge(
+			glob( ABSPATH . PLUGINDIR . '/' . dirname(plugin_basename(__FILE__)) . '/modules/*.mod.php' ),
+			glob( ABSPATH . PLUGINDIR . '/' . dirname(plugin_basename(__FILE__)) . '/modules/*/*.mod.php' )
+		);
+		foreach ( $modules as $module ) {
+			require_once( $module );
+		}
+	}
+
+	/**
+	 * Loads modules and runs activated modules
+	 *
+	 * @access private
+	 *
+	 * @return void
+	 */
+	private function _loadModules() {
+		do_action( 'cubepoints_pre_load_modules' );
+		$this->_includeModules();
+		do_action( 'cubepoints_module_activation' );
+		$activatedModules = $this->getOption('activated_modules');
+		foreach( $activatedModules as $module ) {
+				$this->_loadModule( $module );
+		}
+		do_action( 'cubepoints_modules_loaded' );
+	}
+
+	/**
+	 * Checks if a specified module is activated
+	 *
+	 * @return bool True if module is activated. False if otherwise.
+	 */
+	public function moduleActivated( $module ) {
+		return in_array( $module, $this->getOption('activated_modules') );
+	}
+
+	/**
+	 * Activates a specified module
+	 *
+	 * @return bool True if module is activated successfully. False if otherwise.
+	 */
+	public function activateModule( $module ) {
+		if( $this->moduleActivated( $module ) )
+			return false;
+
+			if( ! class_exists( $module ) )
+			return false;
+
+			if( ! is_subclass_of( $module, 'CubePointsModule' ) )
+			return false;
+
+		$activatedModules = $this->getOption('activated_modules');
+		$activatedModules[] = $module;
+		$this->updateOption('activated_modules', $activatedModules);
+
+		return true;
+	}
+
+	/**
+	 * Deactivates a specified module
+	 *
+	 * @return bool True if module is deactivated successfully. False if otherwise.
+	 */
+	public function deactivateModule( $module ) {
+		$activatedModules = $this->getOption('activated_modules');
+		if( ($key = array_search($module, $activatedModules)) !== false ) {
+			unset($activatedModules[$key]);
+			$this->updateOption('activated_modules', $activatedModules);
+			return true;
+		} else {
+			return false;
+		}
+	}
+
+} // end CubePoints class
+
+abstract class CubePointsModule {
+
+	abstract public function main();
+
+} // end CubePointsModule class
 
 if ( function_exists( 'add_action' ) ) {
-	$cubepoints = new CubePoints();
+	add_action('plugins_loaded', create_function('', 'global $cubepoints; $cubepoints = new CubePoints;'));
 }
