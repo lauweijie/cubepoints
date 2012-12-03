@@ -50,16 +50,19 @@ class CubePoints {
 		add_action( 'init', array( $this, 'textdomain' ) );
 
 		// Register admin styles and scripts
-		add_action( 'admin_print_styles', array( $this, 'register_admin_styles' ) );
-		add_action( 'admin_enqueue_scripts', array( $this, 'register_admin_scripts' ) );
+		add_action( 'admin_print_styles', array( $this, 'registerAdminStyles' ) );
+		add_action( 'admin_enqueue_scripts', array( $this, 'registerAdminScripts' ) );
 	
 		// Register site styles and scripts
-		add_action( 'wp_enqueue_scripts', array( $this, 'register_plugin_styles' ) );
-		add_action( 'wp_enqueue_scripts', array( $this, 'register_plugin_scripts' ) );
+		add_action( 'wp_enqueue_scripts', array( $this, 'registerPluginStyles' ) );
+		add_action( 'wp_enqueue_scripts', array( $this, 'registerPluginScripts' ) );
 
 		register_activation_hook( __FILE__, array( $this, 'activate' ) );
 		register_deactivation_hook( __FILE__, array( $this, 'deactivate' ) );
 		register_uninstall_hook( __FILE__, array( $this, 'uninstall' ) );
+		
+		// Add admin menus
+	    add_action( 'admin_menu', array( $this, 'addAdminMenu' ) );
 		
 	    /*
 	     * TODO:
@@ -212,42 +215,42 @@ class CubePoints {
 	/**
 	 * Registers and enqueues admin-specific styles.
 	 */
-	public function register_admin_styles() {
+	public function registerAdminStyles() {
 	
 		// TODO change 'plugin-name' to the name of your plugin
 		wp_enqueue_style( 'plugin-name-admin-styles', plugins_url( 'plugin-name/css/admin.css' ) );
 	
-	} // end register_admin_styles
+	} // end registerAdminStyles
 
 	/**
 	 * Registers and enqueues admin-specific JavaScript.
 	 */	
-	public function register_admin_scripts() {
+	public function registerAdminScripts() {
 	
 		// TODO change 'plugin-name' to the name of your plugin
 		wp_enqueue_script( 'plugin-name-admin-script', plugins_url( 'plugin-name/js/admin.js' ) );
 	
-	} // end register_admin_scripts
+	} // end registerAdminScripts
 
 	/**
 	 * Registers and enqueues plugin-specific styles.
 	 */
-	public function register_plugin_styles() {
+	public function registerPluginStyles() {
 	
 		// TODO change 'plugin-name' to the name of your plugin
 		wp_enqueue_style( 'plugin-name-plugin-styles', plugins_url( 'plugin-name/css/display.css' ) );
 	
-	} // end register_plugin_styles
+	} // end registerPluginStyles
 
 	/**
 	 * Registers and enqueues plugin-specific scripts.
 	 */
-	public function register_plugin_scripts() {
+	public function registerPluginScripts() {
 	
 		// TODO change 'plugin-name' to the name of your plugin
 		wp_enqueue_script( 'plugin-name-plugin-script', plugins_url( 'plugin-name/js/display.js' ) );
 	
-	} // end register_plugin_scripts
+	} // end registerPluginScripts
 
 	/**
 	 * Returns current plugin version.
@@ -584,7 +587,7 @@ class CubePoints {
 	private function _loadModules() {
 		do_action( 'cubepoints_pre_load_modules' );
 		$this->_includeModules();
-		do_action( 'cubepoints_module_activation' );
+		do_action( 'cubepoints_modules_included' );
 		$activatedModules = $this->getOption('activated_modules');
 		foreach( $activatedModules as $module ) {
 				$this->_loadModule( $module );
@@ -602,23 +605,56 @@ class CubePoints {
 	}
 
 	/**
+	 * Checks for a valid CubePoints module
+	 *
+	 * @param string $module Name of module.
+	 * @return bool True if specified CubePoints module is valid. False if otherwise.
+	 */
+	public function moduleIsValid( $module ) {
+		if( ! class_exists( $module ) )
+			return false;
+
+		if( ! is_subclass_of( $module, 'CubePointsModule' ) )
+			return false;
+
+		$module_vars = get_class_vars( $module );
+
+		if( empty( $module_vars['module']['name'] ) )
+			return false;
+
+		if( empty( $module_vars['module']['version'] ) )
+			return false;
+
+		if( empty( $module_vars['module']['author_name'] ) )
+			return false;
+
+		if( empty( $module_vars['module']['description'] ) )
+			return false;
+
+		return true;
+	}
+
+	/**
 	 * Activates a specified module
 	 *
+	 * @param string $module Name of module.
 	 * @return bool True if module is activated successfully. False if otherwise.
 	 */
 	public function activateModule( $module ) {
 		if( $this->moduleActivated( $module ) )
 			return false;
 
-			if( ! class_exists( $module ) )
-			return false;
-
-			if( ! is_subclass_of( $module, 'CubePointsModule' ) )
+		if( ! $this->moduleIsValid( $module ) )
 			return false;
 
 		$activatedModules = $this->getOption('activated_modules');
 		$activatedModules[] = $module;
 		$this->updateOption('activated_modules', $activatedModules);
+
+		if( method_exists( $this->module($module), 'activate' ) ) {
+			$this->module($module)->activate();
+			do_action( 'cubepoints_module_activate', $module );
+		}
 
 		return true;
 	}
@@ -626,17 +662,62 @@ class CubePoints {
 	/**
 	 * Deactivates a specified module
 	 *
+	 * @param string $module Name of module.
 	 * @return bool True if module is deactivated successfully. False if otherwise.
 	 */
 	public function deactivateModule( $module ) {
 		$activatedModules = $this->getOption('activated_modules');
 		if( ($key = array_search($module, $activatedModules)) !== false ) {
+			if( method_exists( $this->module($module), 'deactivate' ) ) {
+				$this->module($module)->deactivate();
+			}
 			unset($activatedModules[$key]);
 			$this->updateOption('activated_modules', $activatedModules);
+			do_action( 'cubepoints_module_deactivate', $module );
 			return true;
 		} else {
 			return false;
 		}
+	}
+
+	/*--------------------------------------------*
+	 * Admin Pages
+	 *--------------------------------------------*/
+
+	/**
+	 * Adds admin menus
+	 *
+	 * @return void
+	 */
+	public function addAdminMenu() {
+		add_menu_page(
+			__('CubePoints', 'cubepoints') . ' &ndash; ' .  __('Manage Points', 'cubepoints'),
+			__('CubePoints', 'cubepoints'),
+			'manage_options',
+			'cubepoints_manage',
+			array($this, 'adminPageManage')
+		);
+
+		add_submenu_page(
+			'cubepoints_manage',
+			__('CubePoints', 'cubepoints') . ' &ndash; ' .  __('Manage Points', 'cubepoints'),
+			__('Manage Points', 'cubepoints'),
+			'manage_options',
+			'cubepoints_manage',
+			array($this, 'adminPageManage')
+		);
+	}
+
+	/**
+	 * Admin Page: Manage
+	 *
+	 * @return void
+	 */
+	public function adminPageManage() {
+		echo '<div class="wrap">';
+		echo '<div id="icon-users" class="icon32"></div>';
+		echo '<h2>' . __('Manage Points', 'cubepoints') . '</h2>';
+		echo '</div>';
 	}
 
 } // end CubePoints class
