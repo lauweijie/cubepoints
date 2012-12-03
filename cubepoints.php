@@ -60,6 +60,9 @@ class CubePoints {
 		register_activation_hook( __FILE__, array( $this, 'activate' ) );
 		register_deactivation_hook( __FILE__, array( $this, 'deactivate' ) );
 		register_uninstall_hook( __FILE__, array( $this, 'uninstall' ) );
+
+		// Setup roles and capabilities
+		$this->setPermissions();
 		
 		// Add admin menus
 	    add_action( 'admin_menu', array( $this, 'addAdminMenu' ) );
@@ -69,6 +72,10 @@ class CubePoints {
 		add_action( 'manage_users_custom_column',  array( $this, 'manageUsersCustomColumn' ), 10, 3);
 		add_filter( 'manage_users_sortable_columns', array( $this, 'manageUsersSortableColumns' ) );
 		add_filter( 'pre_user_query', array( $this, 'manageUsersColumnOrderby' ) );
+		
+		// Adds points field in user profile
+		add_action( 'show_user_profile', array( $this, 'userProfilePoints' ) );
+		add_action( 'edit_user_profile', array( $this, 'userProfilePoints' ) );
 		
 	    /*
 	     * TODO:
@@ -329,6 +336,23 @@ class CubePoints {
 	/*--------------------------------------------*
 	 * Core Functions
 	 *---------------------------------------------*/
+
+	/**
+	 * Sets up roles and capabilities
+	 *
+	 * @TODO Incomplete work.
+	 *
+	 * @return void
+	 */
+	public function setPermissions() {
+		$role = get_role( apply_filters( 'cubepoints_roles', 'administrator', 'manage_cubepoints_points' ) );
+		if( $role != null )
+			$role->add_cap( 'manage_cubepoints_points' );
+
+		$role = get_role( apply_filters( 'cubepoints_roles', 'administrator', 'manage_cubepoints_options' ) );
+		if( $role != null )
+			$role->add_cap( 'manage_cubepoints_options' );
+	}
 
 	/**
 	 * Gets difference in time.
@@ -728,6 +752,19 @@ class CubePoints {
             $query->query_orderby = 'ORDER BY meta_value ' . $queryvars['order'];
         }
 	} // end manageUsersColumnOrderby
+
+	/* TODO: Incomplete. Need another function for processing. Lacks PHPDOC comments. */
+	public function userProfilePoints( $user ) {
+		echo '<h3>' . __('Points', 'cubepoints') . '</h3>';
+		echo '<table class="form-table">';
+		echo '<tr>';
+		echo '<th><label for="cubepoints">' . __('Number of Points', 'cubepoints') . '</label></th>';
+		echo '<td>';
+		echo '<input type="text" name="cubepoints" id="cubepoints" value="' . $this->getPoints( $user->ID ) . '" class="regular-text"' . (current_user_can('manage_cubepoints_points') ? '' : ' readonly="readonly"') . ' />';
+		echo '</td>';
+		echo '</tr>';
+		echo '</table>';
+	}
 
 	/*--------------------------------------------*
 	 * Admin Pages
