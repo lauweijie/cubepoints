@@ -64,6 +64,12 @@ class CubePoints {
 		// Add admin menus
 	    add_action( 'admin_menu', array( $this, 'addAdminMenu' ) );
 		
+		// Add points column to the users table
+		add_filter( 'manage_users_columns', array( $this, 'manageUsersColumns' ) );
+		add_action( 'manage_users_custom_column',  array( $this, 'manageUsersCustomColumn' ), 10, 3);
+		add_filter( 'manage_users_sortable_columns', array( $this, 'manageUsersSortableColumns' ) );
+		add_filter( 'pre_user_query', array( $this, 'manageUsersColumnOrderby' ) );
+		
 	    /*
 	     * TODO:
 	     * Define the custom functionality for your plugin. The first parameter of the
@@ -386,7 +392,7 @@ class CubePoints {
 	 * @return int Number of points for the user specified.
 	 */
 	public function getPoints( $user_id ) {
-		$points = get_user_meta($user_id, 'cubepoints', 1);
+		$points = get_user_meta( $user_id, 'cubepoints', 1 );
 		if ($points == '') {
 			return 0;
 		} else {
@@ -402,7 +408,7 @@ class CubePoints {
 	 * @return void
 	 */
 	public function setPoints( $user_id, $points ) {
-		update_user_meta($uid, 'cubepoints', $points);
+		update_user_meta( $user_id, 'cubepoints', $points );
 	} // end setPoints
 
 	/**
@@ -424,7 +430,7 @@ class CubePoints {
 	 */
 	public function formatPoints( $points ){
 		if($points == 0) { $points = '0'; }
-		return $this->getOption('cp_prefix') . $points . $this->getOption('cp_suffix');
+		return $this->getOption('prefix') . $points . $this->getOption('suffix');
 	} //end formatPoints
 
 	/**
@@ -517,7 +523,7 @@ class CubePoints {
 			return $this->loaded_modules[$module];
 		else
 			return null;
-	}
+	} // end module
 
 	/**
 	 * Loads a specified module by instantiating the class and running the module
@@ -549,7 +555,7 @@ class CubePoints {
 		do_action( 'cubepoints_module_' . get_class($this) . '_postrun' );
 
 		return true;
-	}
+	} // end _loadModule
 
 	/**
 	 * Checks if a specified module is loaded
@@ -558,7 +564,7 @@ class CubePoints {
 	 */
 	public function moduleLoaded( $name ) {
 		return isset( $this->loaded_modules[$name] );
-	}
+	} // end moduleLoaded
 
 	/**
 	 * Includes all module files in the modules directory
@@ -575,7 +581,7 @@ class CubePoints {
 		foreach ( $modules as $module ) {
 			require_once( $module );
 		}
-	}
+	} // end _includeModules
 
 	/**
 	 * Loads modules and runs activated modules
@@ -593,7 +599,7 @@ class CubePoints {
 				$this->_loadModule( $module );
 		}
 		do_action( 'cubepoints_modules_loaded' );
-	}
+	} // end _loadModules
 
 	/**
 	 * Checks if a specified module is activated
@@ -602,7 +608,7 @@ class CubePoints {
 	 */
 	public function moduleActivated( $module ) {
 		return in_array( $module, $this->getOption('activated_modules') );
-	}
+	} // end moduleActivated
 
 	/**
 	 * Checks for a valid CubePoints module
@@ -610,7 +616,7 @@ class CubePoints {
 	 * @param string $module Name of module.
 	 * @return bool True if specified CubePoints module is valid. False if otherwise.
 	 */
-	public function moduleIsValid( $module ) {
+	public function isModuleValid( $module ) {
 		if( ! class_exists( $module ) )
 			return false;
 
@@ -632,7 +638,7 @@ class CubePoints {
 			return false;
 
 		return true;
-	}
+	} // end isModuleValid
 
 	/**
 	 * Activates a specified module
@@ -644,7 +650,7 @@ class CubePoints {
 		if( $this->moduleActivated( $module ) )
 			return false;
 
-		if( ! $this->moduleIsValid( $module ) )
+		if( ! $this->isModuleValid( $module ) )
 			return false;
 
 		$activatedModules = $this->getOption('activated_modules');
@@ -657,7 +663,7 @@ class CubePoints {
 		}
 
 		return true;
-	}
+	} // end activateModule
 
 	/**
 	 * Deactivates a specified module
@@ -678,7 +684,50 @@ class CubePoints {
 		} else {
 			return false;
 		}
-	}
+	} // end deactivateModule
+
+	/*--------------------------------------------*
+	 * Sortable points column in the users table
+	 *--------------------------------------------*/
+
+	/**
+	 * Register the points column
+	 */
+	public function manageUsersColumns($columns) {
+		$columns['cubepoints'] = __('Points', 'cubepoints');
+		return $columns;
+	} // end manageUsersColumns
+
+	/**
+	 * Display the column content
+	 */
+	public function manageUsersCustomColumn( $value, $column_name, $user_id ) {
+        if ( 'cubepoints' != $column_name )
+           return $value;
+        return $this->displayPoints( $user_id, false );
+	} // end manageUsersCustomColumn
+
+	/**
+	 * Makes the points column sortable
+	 */
+	public function manageUsersSortableColumns($columns) {
+          $custom = array(
+			'cubepoints' => 'cubepoints'
+          );
+      return wp_parse_args($custom, $columns);
+	} // end manageUsersSortableColumns
+
+	/**
+	 * Handles sorting
+	 */
+	public function manageUsersColumnOrderby( $query ) {
+		$queryvars = $query->query_vars;
+        if ($queryvars['orderby'] == 'cubepoints' ) {
+			global $wpdb;
+            $query->query_from .= ' LEFT JOIN ' . $wpdb->usermeta . ' ON (ID = user_id AND meta_key = \'cubepoints\')';
+            $query->query_orderby = 'ORDER BY meta_value ' . $queryvars['order'];
+        }
+	} // end manageUsersColumnOrderby
 
 	/*--------------------------------------------*
 	 * Admin Pages
@@ -706,7 +755,7 @@ class CubePoints {
 			'cubepoints_manage',
 			array($this, 'adminPageManage')
 		);
-	}
+	} // end addAdminMenu
 
 	/**
 	 * Admin Page: Manage
@@ -718,7 +767,7 @@ class CubePoints {
 		echo '<div id="icon-users" class="icon32"></div>';
 		echo '<h2>' . __('Manage Points', 'cubepoints') . '</h2>';
 		echo '</div>';
-	}
+	} // end adminPageManage
 
 } // end CubePoints class
 
@@ -729,5 +778,5 @@ abstract class CubePointsModule {
 } // end CubePointsModule class
 
 if ( function_exists( 'add_action' ) ) {
-	add_action('plugins_loaded', create_function('', 'global $cubepoints; $cubepoints = new CubePoints;'));
+	$cubepoints = new CubePoints;
 }
