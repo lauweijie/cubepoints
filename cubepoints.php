@@ -596,6 +596,35 @@ class CubePoints {
 		do_action( 'cubepoints_modules_loaded' );
 	} // end _loadModules
 
+
+	/**
+	 * Get names of all available modules
+	 *
+	 * @return array $moduleNames Names of available modules.
+	 */
+	public function availableModules() {
+		$moduleNames = array();
+		foreach( get_declared_classes() as $className ){
+			if( $this->isModuleValid( $className ) ) {
+				$moduleNames[] = $className;
+			}
+		}
+		return $moduleNames;
+	} // end availableModules
+
+
+	/**
+	 * Get module details from module name
+	 *
+	 * @param string $moduleName Name of module.
+	 * @return array|bool $moduleDetails Details of a specified module.
+	 */
+	public function moduleInfo( $moduleName ) {
+		$classVars = get_class_vars( $moduleName );
+		$moduleDetails = $classVars['module'];
+		return $moduleDetails;
+	} // end moduleInfo
+
 	/**
 	 * Checks if a specified module is activated
 	 *
@@ -819,6 +848,40 @@ class CubePoints {
 		echo '<div class="wrap">';
 		echo '<div id="icon-plugins" class="icon32"></div>';
 		echo '<h2>' . __('CubePoints', 'cubepoints') . ' ' . __('Modules', 'cubepoints') . '</h2>';
+
+		$modules = $this->availableModules();
+		var_dump($modules);
+		var_dump($this->moduleInfo('Test'));
+
+		echo <<< EOL
+<ul class='subsubsub'>
+	<li class='all'><a href='plugins.php?plugin_status=all'  class="current">All <span class="count">(3)</span></a> |</li>
+	<li class='active'><a href='plugins.php?plugin_status=active' >Active <span class="count">(1)</span></a> |</li>
+	<li class='inactive'><a href='plugins.php?plugin_status=inactive' >Inactive <span class="count">(2)</span></a></li>
+</ul>
+EOL;
+		echo '<table class="wp-list-table widefat plugins" cellspacing="0">';
+		echo '<thead><tr>';
+		echo '<th scope="col" id="name">Module</th>';
+		echo '<th scope="col" id="description">Description</th>';
+		echo '</tr></thead>';
+		echo '<tfoot><tr>';
+		echo '<th scope="col" id="name">Module</th>';
+		echo '<th scope="col" id="description">Description</th>';
+		echo '</tr></tfoot>';
+		echo '<tbody>';
+
+		foreach ( $modules as $module ) {
+		echo '<tr id="akismet" class="inactive">';
+		echo '<td class="plugin-title"><strong>Akismet</strong><div class="row-actions-visible"><span class="activate"><a href="#" title="Activate this module" class="edit">Activate</a></span></div></td>';
+		echo '<td class="column-description desc">';
+		echo '<div class="plugin-description"><p>Used by millions, Akismet is quite possibly the best way in the world to <strong>protect your blog from comment and trackback spam</strong>. It keeps your site protected from spam even while you sleep. To get started: 1) Click the "Activate" link to the left of this description, 2) <a href="http://akismet.com/get/?return=true">Sign up for an Akismet API key</a>, and 3) Go to your <a href="admin.php?page=akismet-key-config">Akismet configuration</a> page, and save your API key.</p></div>';
+		echo '<div class="second plugin-version-author-uri">Version 2.5.6 | By <a href="http://automattic.com/wordpress-plugins/" title="Visit author homepage">Automattic</a> | <a href="http://akismet.com/?return=true" title="Visit plugin site">Visit plugin site</a></div></td></tr>';
+		}
+		echo '</tbody>';
+		echo '</table>';
+
+		
 		echo '</div>';
 	} // end adminPageSettings
 
