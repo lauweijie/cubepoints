@@ -42,10 +42,13 @@ class CubePoints {
 	 * Initializes the plugin by setting localization, filters, and administration functions.
 	 */
 	function __construct() {
-	
+
 		// load modules
 		$this->_loadModules();
-		
+
+		// handles activation and deactivation of modules
+		add_action( 'init', array( $this, 'moduleActionHook' ) );
+				
 		// load plugin text domain
 		add_action( 'init', array( $this, 'textdomain' ) );
 
@@ -532,13 +535,10 @@ class CubePoints {
 		if( $this->moduleLoaded( $module ) )
 			return false;
 
-		if( ! class_exists( $module ) ) {
+		if( ! $this->isModuleValid( $module ) ) {
 			$this->deactivateModule( $module );
 			return false;
 		}
-
-		if( ! is_subclass_of( $module, 'CubePointsModule' ) )
-			return false;
 
 		do_action( 'cubepoints_module_prerun', get_class($this) );
 		do_action( 'cubepoints_module_' . get_class($this) . '_prerun' );
@@ -709,6 +709,37 @@ class CubePoints {
 			return false;
 		}
 	} // end deactivateModule
+
+
+	/**
+	 * Hook for the modules admin page for activation and deactivation of modules
+	 *
+	 * @return void
+	 */
+	public function moduleActionHook( $module ) {
+		if( ! is_admin() || $_GET['page'] != 'cubepoints_modules' || empty( $_GET['action'] ) )
+			return;
+
+		$redirUri = $_SERVER[REQUEST_URI];
+		$redirUri = remove_query_arg( '_wpnonce', $redirUri );
+		$redirUri = remove_query_arg( 'action', $redirUri );
+		$redirUri = remove_query_arg( 'module', $redirUri );
+		$redirUri = remove_query_arg( 'activate', $redirUri );
+		$redirUri = remove_query_arg( 'deactivate', $redirUri );
+
+		if( $_GET['action'] == 'activate_module' && ! empty( $_GET['module'] ) && wp_verify_nonce( $_GET['_wpnonce'], 'activate_module_' . $_GET['module'] ) ) {
+			$this->activateModule( $_GET['module'] );
+			$redirUri = add_query_arg( 'activate', 'true', $redirUri );
+		}
+
+		if( $_GET['action'] == 'deactivate_module' && ! empty( $_GET['module'] ) && wp_verify_nonce( $_GET['_wpnonce'], 'deactivate_module_' . $_GET['module'] ) ) {
+			$this->deactivateModule( $_GET['module'] );
+			$redirUri = add_query_arg( 'deactivate', 'true', $redirUri );
+		}
+
+		wp_redirect( $redirUri );
+		exit;
+	} // end activateModule
 
 	/*--------------------------------------------*
 	 * Points column in the users table
