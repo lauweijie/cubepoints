@@ -469,20 +469,26 @@ class CubePoints {
 	 * @param mixed $data1 Optional. Any supplementary data associated with transaction.
 	 * @param mixed $data2 Optional. Any supplementary data associated with transaction.
 	 * @param mixed $data3 Optional. Any supplementary data associated with transaction.
-	 * @return bool True if points were added successfully. False if otherwise.
+	 * @return bool|array True if points were added successfully. Array of error codes if otherwise.
 	 */
 	public function addPoints( $type, $user_id, $points, $data1 = null, $data2 = null, $data3 = null ){
-		$continue = true;
+		$errors = array();
+
 		if( $points == 0 )
-			$continue = false;
-		list( $type, $user_id, $points, $data1, $data2, $data3, $continue ) = apply_filters( 'cubepoints_addPoints', array( $type, $user_id, $points, $data1, $data2, $data3, $continue ) );
-		if( $continue ) {
+			$errors[] = 'no_change';
+
+		if( ! $this->getOption( 'allow_negative_points' ) && ($this->getPoints($user_id) + $points) < 0 )
+			$errors[] = 'negative_points';
+
+		list( $type, $user_id, $points, $data1, $data2, $data3, $errors ) = apply_filters( 'cubepoints_addPoints', array( $type, $user_id, $points, $data1, $data2, $data3, $errors ) );
+
+		if( count( $errors ) == 0 ) {
 			$this->alterPoints( $user_id, $points );
 			$this->_addLog( $type, $user_id, $points, $data1, $data2, $data3 );
 			do_action( 'cubepoints_addPoints', $type, $user_id, $points, $data1, $data2, $data3 );
 			return true;
 		}
-		return false;
+		return $errors;
 	} // end addPoints
 
 	/**
@@ -494,11 +500,11 @@ class CubePoints {
 	 * @param mixed $data1 Optional. Any supplementary data associated with transaction.
 	 * @param mixed $data2 Optional. Any supplementary data associated with transaction.
 	 * @param mixed $data3 Optional. Any supplementary data associated with transaction.
-	 * @return void
+	 * @return bool|array True if points were added successfully. Array of error codes if otherwise.
 	 */
 	public function updatePoints( $type, $user_id, $points, $data1 = null, $data2 = null, $data3 = null ){
 		$pointsToAdd = $points - $this->getPoints( $user_id );
-		addPoints( $type, $user_id, $pointsToAdd, $data1, $data2, $data3 );
+		return $this->addPoints( $type, $user_id, $pointsToAdd, $data1, $data2, $data3 );
 	} // end updatePoints
 
 	/**
@@ -723,14 +729,14 @@ class CubePoints {
 	 */
 	public function userProfilePointsUpdate( $user_id ) {
 		if ( ! current_user_can( 'manage_cubepoints', $user_id ) )
-			return false;
+			return;
 
 		$points = (int) $_POST['cubepoints_points'];
-		
+
 		if( ! $this->getOption( 'allow_negative_points' ) && $points < 0 )
 			$points = 0;
 		
-		
+		$this->updatePoints( 'admin', $user_id, $points, $this->currentUserId );
 		
 	} // end userProfilePoints
 
@@ -745,34 +751,76 @@ class CubePoints {
 	 */
 	public function addAdminMenu() {
 		add_menu_page(
-			__('CubePoints', 'cubepoints') . ' &ndash; ' .  __('Manage Points', 'cubepoints'),
+			__('CubePoints', 'cubepoints') . ' &ndash; ' .  __('Settings', 'cubepoints'),
 			__('CubePoints', 'cubepoints'),
-			'manage_options',
-			'cubepoints_manage',
-			array($this, 'adminPageManage')
+			'update_core',
+			'cubepoints_transactions',
+			array($this, 'adminPageTransactions')
 		);
 
 		add_submenu_page(
-			'cubepoints_manage',
-			__('CubePoints', 'cubepoints') . ' &ndash; ' .  __('Manage Points', 'cubepoints'),
-			__('Manage Points', 'cubepoints'),
-			'manage_options',
-			'cubepoints_manage',
-			array($this, 'adminPageManage')
+			'cubepoints_transactions',
+			__('CubePoints', 'cubepoints') . ' &ndash; ' .  __('Transactions', 'cubepoints'),
+			__('Transactions', 'cubepoints'),
+			'update_core',
+			'cubepoints_transactions',
+			array($this, 'adminPageTransactions')
+		);
+
+		add_submenu_page(
+			'cubepoints_transactions',
+			__('CubePoints', 'cubepoints') . ' &ndash; ' .  __('Settings', 'cubepoints'),
+			__('Settings', 'cubepoints'),
+			'update_core',
+			'cubepoints_settings',
+			array($this, 'adminPageSettings')
+		);
+
+		add_submenu_page(
+			'cubepoints_transactions',
+			__('CubePoints', 'cubepoints') . ' &ndash; ' .  __('Modules', 'cubepoints'),
+			__('Modules', 'cubepoints'),
+			'update_core',
+			'cubepoints_modules',
+			array($this, 'adminPageModules')
 		);
 	} // end addAdminMenu
+
+	/**
+	 * Admin Page: Transactions
+	 *
+	 * @return void
+	 */
+	public function adminPageTransactions() {
+		echo '<div class="wrap">';
+		echo '<div id="icon-edit-pages" class="icon32"></div>';
+		echo '<h2>' . __('CubePoints', 'cubepoints') . ' ' . __('Transactions', 'cubepoints') . '</h2>';
+		echo '</div>';
+	} // end adminPageTransactions
 
 	/**
 	 * Admin Page: Manage
 	 *
 	 * @return void
 	 */
-	public function adminPageManage() {
+	public function adminPageSettings() {
 		echo '<div class="wrap">';
-		echo '<div id="icon-users" class="icon32"></div>';
-		echo '<h2>' . __('Manage Points', 'cubepoints') . '</h2>';
+		echo '<div id="icon-options-general" class="icon32"></div>';
+		echo '<h2>' . __('CubePoints', 'cubepoints') . ' ' . __('Settings', 'cubepoints') . '</h2>';
 		echo '</div>';
-	} // end adminPageManage
+	} // end adminPageSettings
+
+	/**
+	 * Admin Page: Modules
+	 *
+	 * @return void
+	 */
+	public function adminPageModules() {
+		echo '<div class="wrap">';
+		echo '<div id="icon-plugins" class="icon32"></div>';
+		echo '<h2>' . __('CubePoints', 'cubepoints') . ' ' . __('Modules', 'cubepoints') . '</h2>';
+		echo '</div>';
+	} // end adminPageSettings
 
 } // end CubePoints class
 
@@ -783,5 +831,5 @@ abstract class CubePointsModule {
 } // end CubePointsModule class
 
 if ( function_exists( 'add_action' ) ) {
-	$cubepoints = new CubePoints;$cubepoints->setPoints(1,5);
+	$cubepoints = new CubePoints;
 }
