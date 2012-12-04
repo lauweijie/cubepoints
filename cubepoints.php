@@ -60,22 +60,27 @@ class CubePoints {
 		register_activation_hook( __FILE__, array( $this, 'activate' ) );
 		register_deactivation_hook( __FILE__, array( $this, 'deactivate' ) );
 		register_uninstall_hook( __FILE__, array( $this, 'uninstall' ) );
-
-		// Setup roles and capabilities
-		$this->setPermissions();
 		
 		// Add admin menus
-	    add_action( 'admin_menu', array( $this, 'addAdminMenu' ) );
+		if( function_exists('is_multisite') && is_multisite() ) {
+			add_action( 'network_admin_menu', array( $this, 'addAdminMenu' ) );
+		}
+		else {
+			add_action( 'admin_menu', array( $this, 'addAdminMenu' ) );
+		}
 		
 		// Add points column to the users table
+		add_action( 'manage_users_custom_column',  array( $this, 'manageUsersCustomColumn' ), 10, 3 );
 		add_filter( 'manage_users_columns', array( $this, 'manageUsersColumns' ) );
-		add_action( 'manage_users_custom_column',  array( $this, 'manageUsersCustomColumn' ), 10, 3);
-		add_filter( 'manage_users_sortable_columns', array( $this, 'manageUsersSortableColumns' ) );
-		add_filter( 'pre_user_query', array( $this, 'manageUsersColumnOrderby' ) );
+		
+		// Add points column to network admin users table
+		add_filter( 'wpmu_users_columns', array( $this, 'manageUsersColumns' ) );
 		
 		// Adds points field in user profile
 		add_action( 'show_user_profile', array( $this, 'userProfilePoints' ) );
 		add_action( 'edit_user_profile', array( $this, 'userProfilePoints' ) );
+		add_action( 'personal_options_update', array( $this, 'userProfilePointsUpdate' ) );
+		add_action( 'edit_user_profile_update', array( $this, 'userProfilePointsUpdate' ) );
 		
 	    /*
 	     * TODO:
@@ -101,27 +106,11 @@ class CubePoints {
 	 * @params	$network_wide	True if WPMU superadmin uses "Network Activate" action, false if WPMU is disabled or plugin is activated on an individual blog.
 	 */
 	public function activate( $network_wide ) {
-		// check if it is network-wide; if so, run the activation function for each blog id
-		if( function_exists('is_multisite') && is_multisite() && $network_wide ){
-			global $wpdb;
-			$curr_blogid = $wpdb->blogid;
-			$blogids = $wpdb->get_col($wpdb->prepare("SELECT blog_id FROM $wpdb->blogs"));
-			foreach($blogids as $blogid){
-				switch_to_blog($blogid);
-				$this->_activate();
-			}
-			switch_to_blog($curr_blogid);
-		} else {
-			$this->_activate();
-		}
-	} // end activate
 
-	/**
-	 * Sets up default options and creates database.
-	 *
-	 * @access private
-	 */
-	private function _activate() {
+		// disallow activation for a single site on a multisite network
+		if( function_exists('is_multisite') && is_multisite() && ! $network_wide )
+			wp_die( '<strong>' . __('ERROR' , 'cubepoints') . ':</strong> ' . __('CubePoints cannot be activated for a single site on a multisite network. To use CubePoints in a multisite network, activate it for the entire network from the network administration menu.', 'cubepoints') );
+
 		// creates database
 		global $wpdb;
 		if( (int) $this->getOption('db_version', 0) < 1 || $wpdb->get_var("SHOW TABLES LIKE '" . $this->dbName() . "'") != $this->dbName() ) {
@@ -140,27 +129,32 @@ class CubePoints {
 			dbDelta($sql);
 			$this->updateOption('db_version', 1);
 		}
-		
+
 		// adds default options
-		$options = array(
-			'auth_key' => substr( md5(uniqid()) , 3 , 10 ),
-			'version' => $this->getVersion(),
-			'prefix' => '$',
-			'suffix' => '',
-			'activated_modules' => array(),
-			'comment_points' => 5,
-			'del_comment_points' => 5,
-			'reg_points' => 100,
-			'post_points' => 20
-		);
-		foreach( $options as $option_name => $option_value )
-			$this->updateOption( $option_name, $option_value );
-	} // end _activate
+		$this->updateOption( 'auth_key' , substr( md5(uniqid()) , 3 , 10 ) );
+		$this->updateOption( 'activated_modules' , array() );
+		$this->updateOption( 'prefix' , '$' );
+		$this->updateOption( 'suffix' , '' );
+		$this->updateOption( 'allow_negative_points' , false );
+		
+
+		// sets up default user capabilities for managing points
+		$this->removeCapFromAllRoles( 'manage_cubepoints' );
+		if( ! $network_wide ){
+			$role = get_role( 'administrator' );
+			if( $role != null )
+				$role->add_cap( 'manage_cubepoints' );
+		}
+		
+		// updates installed version
+		$this->updateOption( 'version' , $this->getVersion() );
+		$this->updateOption( 'network_wide_install' , $network_wide );
+	} // end activate
 
 	/**
 	 * Fired when the plugin is deactivated.
 	 *
-	 * @params	$network_wide	True if WPMU superadmin uses "Network Activate" action, false if WPMU is disabled or plugin is activated on an individual blog.
+	 * @params bool $network_wide True if WPMU superadmin uses "Network Activate" action, false if WPMU is disabled or plugin is activated on an individual blog.
 	 */
 	public function deactivate( $network_wide ) {
 		// TODO define deactivation functionality here		
@@ -169,33 +163,12 @@ class CubePoints {
 	/**
 	 * Fired when the plugin is uninstalled.
 	 *
-	 * @params	$network_wide	True if WPMU superadmin uses "Network Activate" action, false if WPMU is disabled or plugin is activated on an individual blog.
+	 * @params bool $network_wide True if WPMU superadmin uses "Network Activate" action, false if WPMU is disabled or plugin is activated on an individual blog.
 	 */
 	public function uninstall( $network_wide ) {
-		// check if it is network-wide; if so, run the uninstall function for each blog id
-		if( function_exists('is_multisite') && is_multisite() && $network_wide ){
-			global $wpdb;
-			$curr_blogid = $wpdb->blogid;
-			$blogids = $wpdb->get_col($wpdb->prepare("SELECT blog_id FROM $wpdb->blogs"));
-			foreach($blogids as $blogid){
-				switch_to_blog($blogid);
-				$this->_uninstall();
-			}
-			switch_to_blog($curr_blogid);
-		} else {
-			$this->_uninstall();
-		}
-	} // end uninstall
-
-	/**
-	 * Removes plugin options and database.
-	 *
-	 * @access private
-	 */
-	private function _uninstall() {
-		
-		// TODO test uninstall
-		
+		// deactivates all activated modules
+			// @TODO
+	
 		// removes database
 		global $wpdb;
 		$sql = "DROP TABLE '" . $this->dbName() . "';" ;
@@ -203,20 +176,19 @@ class CubePoints {
 		$this->deleteOption('cp_db_version');
 		
 		// removes plugin options
-		$options = array(
-			'auth_key',
-			'version',
-			'prefix',
-			'suffix',
-			'comment_points',
-			'del_comment_points',
-			'reg_points',
-			'post_points'
-		);
-		foreach( $options as $option_name )
-			$this->deleteOption( $option_name );
+		$this->deleteOption( 'auth_key' );
+		$this->deleteOption( 'activated_modules' );
+		$this->deleteOption( 'prefix' );
+		$this->deleteOption( 'suffix' );
+		$this->deleteOption( 'allow_negative_points' );
 
-	} // end _uninstall
+		// removes the manage_cubepoints capability from all roles
+		$this->removeCapFromAllRoles( 'manage_cubepoints' );
+
+		// removes version data
+		$this->deleteOption( 'version' );
+		$this->deleteOption( 'network_wide_install' );
+	} // end uninstall
 
 	/**
 	 * Loads the plugin text domain for translation
@@ -294,12 +266,10 @@ class CubePoints {
 	 * @return mixed Values for the option.
 	 */
 	public function getOption( $option, $default = false ) {
-
 		// prefix options to prevent namespace conflicts
 		$option = 'cubepoints_' . $option;
 
-		return get_option( $option, $default );
-
+		return get_site_option( $option, $default );
 	} // end getOption
 
 	/**
@@ -310,12 +280,10 @@ class CubePoints {
 	 * @return bool True if option value has changed, false if not or if update failed.
 	 */
 	public function updateOption( $option, $new_value ) {
-
 		// prefix options to prevent namespace conflicts
 		$option = 'cubepoints_' . $option;
 
-		return update_option( $option, $new_value );
-
+		return update_site_option( $option, $new_value );
 	} // end updateOption
 
 	/**
@@ -325,34 +293,27 @@ class CubePoints {
 	 * @return bool True if the option has been successfully deleted, otherwise false.
 	 */
 	public function deleteOption( $option ) {
-
 		// prefix options to prevent namespace conflicts
 		$option = 'cubepoints_' . $option;
 
-		return delete_option( $option );
-
+		return delete_site_option( $option );
 	} // end deleteOption
+
+	/**
+	 * Removes the a specified capability from all roles
+	 *
+	 * @param string $cap Capability name.
+	 */
+	public function removeCapFromAllRoles( $cap ) {
+		global $wp_roles;
+		foreach( array_keys( $wp_roles->roles ) as $role ){
+			get_role( $role )->remove_cap( $cap );
+		}
+	} // end removeCapFromAllRoles
 
 	/*--------------------------------------------*
 	 * Core Functions
 	 *---------------------------------------------*/
-
-	/**
-	 * Sets up roles and capabilities
-	 *
-	 * @TODO Incomplete work.
-	 *
-	 * @return void
-	 */
-	public function setPermissions() {
-		$role = get_role( apply_filters( 'cubepoints_roles', 'administrator', 'manage_cubepoints_points' ) );
-		if( $role != null )
-			$role->add_cap( 'manage_cubepoints_points' );
-
-		$role = get_role( apply_filters( 'cubepoints_roles', 'administrator', 'manage_cubepoints_options' ) );
-		if( $role != null )
-			$role->add_cap( 'manage_cubepoints_options' );
-	}
 
 	/**
 	 * Gets difference in time.
@@ -508,16 +469,20 @@ class CubePoints {
 	 * @param mixed $data1 Optional. Any supplementary data associated with transaction.
 	 * @param mixed $data2 Optional. Any supplementary data associated with transaction.
 	 * @param mixed $data3 Optional. Any supplementary data associated with transaction.
-	 * @return void
+	 * @return bool True if points were added successfully. False if otherwise.
 	 */
 	public function addPoints( $type, $user_id, $points, $data1 = null, $data2 = null, $data3 = null ){
 		$continue = true;
-		$points = apply_filters( 'cubepoints_addPoints', $type, $user_id, $points, $data1, $data2, $data3, $continue );
+		if( $points == 0 )
+			$continue = false;
+		list( $type, $user_id, $points, $data1, $data2, $data3, $continue ) = apply_filters( 'cubepoints_addPoints', array( $type, $user_id, $points, $data1, $data2, $data3, $continue ) );
 		if( $continue ) {
 			$this->alterPoints( $user_id, $points );
 			$this->_addLog( $type, $user_id, $points, $data1, $data2, $data3 );
 			do_action( 'cubepoints_addPoints', $type, $user_id, $points, $data1, $data2, $data3 );
+			return true;
 		}
+		return false;
 	} // end addPoints
 
 	/**
@@ -618,7 +583,7 @@ class CubePoints {
 		do_action( 'cubepoints_pre_load_modules' );
 		$this->_includeModules();
 		do_action( 'cubepoints_modules_included' );
-		$activatedModules = $this->getOption('activated_modules');
+		$activatedModules = $this->getOption('activated_modules', array());
 		foreach( $activatedModules as $module ) {
 				$this->_loadModule( $module );
 		}
@@ -711,7 +676,7 @@ class CubePoints {
 	} // end deactivateModule
 
 	/*--------------------------------------------*
-	 * Sortable points column in the users table
+	 * Points column in the users table
 	 *--------------------------------------------*/
 
 	/**
@@ -732,39 +697,42 @@ class CubePoints {
 	} // end manageUsersCustomColumn
 
 	/**
-	 * Makes the points column sortable
+	 * Adds HTML form to the user profile page
+	 *
+	 * @param object $user WP_User object
+	 * @return void
 	 */
-	public function manageUsersSortableColumns($columns) {
-          $custom = array(
-			'cubepoints' => 'cubepoints'
-          );
-      return wp_parse_args($custom, $columns);
-	} // end manageUsersSortableColumns
-
-	/**
-	 * Handles sorting
-	 */
-	public function manageUsersColumnOrderby( $query ) {
-		$queryvars = $query->query_vars;
-        if ($queryvars['orderby'] == 'cubepoints' ) {
-			global $wpdb;
-            $query->query_from .= ' LEFT JOIN ' . $wpdb->usermeta . ' ON (ID = user_id AND meta_key = \'cubepoints\')';
-            $query->query_orderby = 'ORDER BY meta_value ' . $queryvars['order'];
-        }
-	} // end manageUsersColumnOrderby
-
-	/* TODO: Incomplete. Need another function for processing. Lacks PHPDOC comments. */
 	public function userProfilePoints( $user ) {
 		echo '<h3>' . __('Points', 'cubepoints') . '</h3>';
 		echo '<table class="form-table">';
 		echo '<tr>';
-		echo '<th><label for="cubepoints">' . __('Number of Points', 'cubepoints') . '</label></th>';
+		echo '<th><label for="cubepoints_points">' . __('Number of Points', 'cubepoints') . '</label></th>';
 		echo '<td>';
-		echo '<input type="text" name="cubepoints" id="cubepoints" value="' . $this->getPoints( $user->ID ) . '" class="regular-text"' . (current_user_can('manage_cubepoints_points') ? '' : ' readonly="readonly"') . ' />';
+		echo '<input type="text" name="cubepoints_points" id="cubepoints_points" value="' . $this->getPoints( $user->ID ) . '" class="regular-text"' . (current_user_can('manage_cubepoints') ? '' : ' readonly="readonly"') . ' />';
 		echo '</td>';
+		// @TODO: Add do_action hook here so modules can inset HTML if necessary
 		echo '</tr>';
 		echo '</table>';
-	}
+	} // end userProfilePoints
+
+	/**
+	 * Process and updates points from the user profile page
+	 *
+	 * @param int $user_id ID of the user of which points are updated
+	 * @return void
+	 */
+	public function userProfilePointsUpdate( $user_id ) {
+		if ( ! current_user_can( 'manage_cubepoints', $user_id ) )
+			return false;
+
+		$points = (int) $_POST['cubepoints_points'];
+		
+		if( ! $this->getOption( 'allow_negative_points' ) && $points < 0 )
+			$points = 0;
+		
+		
+		
+	} // end userProfilePoints
 
 	/*--------------------------------------------*
 	 * Admin Pages
@@ -815,5 +783,5 @@ abstract class CubePointsModule {
 } // end CubePointsModule class
 
 if ( function_exists( 'add_action' ) ) {
-	$cubepoints = new CubePoints;
+	$cubepoints = new CubePoints;$cubepoints->setPoints(1,5);
 }
