@@ -465,7 +465,11 @@ class CubePoints {
 	 * @param mixed $data3 Optional. Any supplementary data associated with transaction.
 	 * @return void
 	 */
-	public function _addLog( $type, $user_id, $points, $data1 = null, $data2 = null, $data3 = null ){
+	public function _addLog( $type, $user_id, $points ){
+		$numArgs = func_num_args();
+		for ( $i=3; $i<$numArgs; $i++) {
+			// @TODO
+		}
 		list($data1, $data2, $data3) = array_map('serialize', array($data1, $data2, $data3));
 		global $wpdb;
 		$wpdb->query("INSERT INTO `" . $this->prefixDb() . "` (`uid`, `type`, `data1`, `data2`, `data3`, `points`, `timestamp`) " .
