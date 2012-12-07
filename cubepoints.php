@@ -116,17 +116,25 @@ class CubePoints {
 
 		// creates database
 		global $wpdb;
-		if( (int) $this->getOption('db_version', 0) < 1 || $wpdb->get_var("SHOW TABLES LIKE '" . $this->dbName() . "'") != $this->dbName() ) {
-			$sql = "CREATE TABLE " . $this->dbName() . " (
-				  id BIGINT(20) NOT NULL AUTO_INCREMENT,
-				  uid BIGINT(20) NOT NULL,
-				  type VARCHAR(256) NOT NULL,
-				  points BIGINT(20) NOT NULL,
-				  timestamp TIMESTAMP NOT NULL,
-				  UNIQUE KEY id (id)
-				);";
+		if( (int) $this->getOption('db_version', 0) < 1 || $wpdb->get_var("SHOW TABLES LIKE '" . $this->prefixDb( 'cubepoints' ) . "'") != $this->prefixDb( 'cubepoints' ) ) {
+			$sql1 = "CREATE TABLE " . $this->prefixDb( 'cubepoints' ) . " (
+					id BIGINT(20) NOT NULL AUTO_INCREMENT,
+					uid BIGINT(20) NOT NULL,
+					type VARCHAR(255) NOT NULL,
+					points BIGINT(20) NOT NULL,
+					timestamp TIMESTAMP NOT NULL,
+					UNIQUE KEY id (id)
+					);";
+			$sql2 = "CREATE TABLE " . $this->prefixDb( 'cubepoints_meta' ) . " (
+					id BIGINT(20) NOT NULL AUTO_INCREMENT,
+					txn_id BIGINT(20) NOT NULL,
+					meta_key VARCHAR(255) NOT NULL,
+					meta_value TEXT NOT NULL,
+					UNIQUE KEY id (id)
+					);";
 			require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
-			dbDelta($sql);
+			dbDelta($sql1);
+			dbDelta($sql2);
 			$this->updateOption('db_version', 1);
 		}
 
@@ -171,8 +179,8 @@ class CubePoints {
 	
 		// removes database
 		global $wpdb;
-		$sql = "DROP TABLE '" . $this->dbName() . "';" ;
-		$wpdb->query($sql);
+		$wpdb->query("DROP TABLE '" . $this->prefixDb( 'cubepoints' ) . "';");
+		$wpdb->query("DROP TABLE '" . $this->prefixDb( 'cubepoints_meta' ) . "';");
 		$this->deleteOption('cp_db_version');
 		
 		// removes plugin options
@@ -251,12 +259,15 @@ class CubePoints {
 	} // end getVersion
 
 	/**
-	 * Returns the database name
+	 * Returns database name prepended by WordPress' prefix
+	 *
+	 * @param string $db Name of database to be prepended
+	 * @return string Name of database prepended by WordPress' prefix
 	 */
-	public function dbName() {
+	public function prefixDb( $db ) {
 		global $wpdb;
-		return $wpdb->base_prefix . 'cubepoints';
-	} // end dbName
+		return $wpdb->base_prefix . $db;
+	} // end prefixDb
 
 	/**
 	 * Returns values for a named option.
@@ -443,6 +454,7 @@ class CubePoints {
 	/**
 	 * Adds transaction to logs database
 	 * 
+	 * @TODO: to edit to reflect new database schema
 	 * @access private
 	 *
 	 * @param string $type An ID used internally by CubePoints to determine the type of transaction.
@@ -456,7 +468,7 @@ class CubePoints {
 	public function _addLog( $type, $user_id, $points, $data1 = null, $data2 = null, $data3 = null ){
 		list($data1, $data2, $data3) = array_map('serialize', array($data1, $data2, $data3));
 		global $wpdb;
-		$wpdb->query("INSERT INTO `" . $this->dbName() . "` (`uid`, `type`, `data1`, `data2`, `data3`, `points`, `timestamp`) " .
+		$wpdb->query("INSERT INTO `" . $this->prefixDb() . "` (`uid`, `type`, `data1`, `data2`, `data3`, `points`, `timestamp`) " .
 					  "VALUES ('".$user_id."', '".$type."', '".$data1."', '".$data2."', '".$data3."', '".$points."', ".time().");");
 	} // end _addLog
 
