@@ -118,14 +118,11 @@ class CubePoints {
 		global $wpdb;
 		if( (int) $this->getOption('db_version', 0) < 1 || $wpdb->get_var("SHOW TABLES LIKE '" . $this->dbName() . "'") != $this->dbName() ) {
 			$sql = "CREATE TABLE " . $this->dbName() . " (
-				  id bigint(20) NOT NULL AUTO_INCREMENT,
-				  uid bigint(20) NOT NULL,
+				  id BIGINT(20) NOT NULL AUTO_INCREMENT,
+				  uid BIGINT(20) NOT NULL,
 				  type VARCHAR(256) NOT NULL,
-				  data1 TEXT NOT NULL,
-				  data2 TEXT NOT NULL,
-				  data3 TEXT NOT NULL,
-				  points bigint(20) NOT NULL,
-				  timestamp bigint(20) NOT NULL,
+				  points BIGINT(20) NOT NULL,
+				  timestamp TIMESTAMP NOT NULL,
 				  UNIQUE KEY id (id)
 				);";
 			require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
