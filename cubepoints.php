@@ -460,19 +460,15 @@ class CubePoints {
 	 * @param string $type An ID used internally by CubePoints to determine the type of transaction.
 	 * @param int $user_id User ID of which the transaction belongs to.
 	 * @param int $points Number of points added or removed.
-	 * @param mixed $data1 Optional. Any supplementary data associated with transaction.
-	 * @param mixed $data2 Optional. Any supplementary data associated with transaction.
-	 * @param mixed $data3 Optional. Any supplementary data associated with transaction.
+	 * @param array $metas Array of metas associated with transaction.
 	 * @return void
 	 */
-	public function _addLog( $type, $user_id, $points ){
-		$numArgs = func_num_args();
-		for ( $i=3; $i<$numArgs; $i++) {
-			// @TODO
-		}
-		list($data1, $data2, $data3) = array_map('serialize', array($data1, $data2, $data3));
+	public function _addLog( $type, $user_id, $points, $metas ){
 		global $wpdb;
-		$wpdb->query("INSERT INTO `" . $this->prefixDb() . "` (`uid`, `type`, `data1`, `data2`, `data3`, `points`, `timestamp`) " .
+
+		// @TODO: serialize and add meta key to database
+		// @TODO: change this:
+		$wpdb->query("INSERT INTO `" . $this->prefixDb('cubepoints') . "` (`uid`, `type`, `points`, `timestamp`) " .
 					  "VALUES ('".$user_id."', '".$type."', '".$data1."', '".$data2."', '".$data3."', '".$points."', ".time().");");
 	} // end _addLog
 
@@ -482,12 +478,10 @@ class CubePoints {
 	 * @param string $type An ID used internally by CubePoints to determine the type of transaction.
 	 * @param int $user_id ID of user to add or subtract points from.
 	 * @param int $points Number of points added or removed.
-	 * @param mixed $data1 Optional. Any supplementary data associated with transaction.
-	 * @param mixed $data2 Optional. Any supplementary data associated with transaction.
-	 * @param mixed $data3 Optional. Any supplementary data associated with transaction.
+	 * @param array $meta,... Optional. Any supplementary data associated with transaction.
 	 * @return bool|array True if points were added successfully. Array of error codes if otherwise.
 	 */
-	public function addPoints( $type, $user_id, $points, $data1 = null, $data2 = null, $data3 = null ){
+	public function addPoints( $type, $user_id, $points, $meta = null ){
 		$errors = array();
 
 		if( $points == 0 )
@@ -496,12 +490,21 @@ class CubePoints {
 		if( ! $this->getOption( 'allow_negative_points' ) && ($this->getPoints($user_id) + $points) < 0 )
 			$errors[] = 'negative_points';
 
-		list( $type, $user_id, $points, $data1, $data2, $data3, $errors ) = apply_filters( 'cubepoints_addPoints', array( $type, $user_id, $points, $data1, $data2, $data3, $errors ) );
+		$metas = func_get_args();
+		array_splice( $metas, 0, 3 );
+		foreach($metas as $key=>$meta){
+			if( ! is_array($meta) || count($meta) != 2 ){
+				unset( $metas[$key] );
+			}
+		}
+		array_merge($metas);
+
+		list( $type, $user_id, $points, $metas, $errors ) = apply_filters( 'cubepoints_addPoints', array( $type, $user_id, $points, $metas, $errors ) );
 
 		if( count( $errors ) == 0 ) {
 			$this->alterPoints( $user_id, $points );
 			$this->_addLog( $type, $user_id, $points, $data1, $data2, $data3 );
-			do_action( 'cubepoints_addPoints', $type, $user_id, $points, $data1, $data2, $data3 );
+			do_action( 'cubepoints_addPoints', $type, $user_id, $points, $metas );
 			return true;
 		}
 		return $errors;
@@ -513,14 +516,13 @@ class CubePoints {
 	 * @param string $type An ID used internally by CubePoints to determine the type of transaction.
 	 * @param int $user_id ID of user to update points from.
 	 * @param int $points Number of points to set.
-	 * @param mixed $data1 Optional. Any supplementary data associated with transaction.
-	 * @param mixed $data2 Optional. Any supplementary data associated with transaction.
-	 * @param mixed $data3 Optional. Any supplementary data associated with transaction.
+	 * @param array $meta,... Optional. Any supplementary data associated with transaction.
 	 * @return bool|array True if points were added successfully. Array of error codes if otherwise.
 	 */
-	public function updatePoints( $type, $user_id, $points, $data1 = null, $data2 = null, $data3 = null ){
-		$pointsToAdd = $points - $this->getPoints( $user_id );
-		return $this->addPoints( $type, $user_id, $pointsToAdd, $data1, $data2, $data3 );
+	public function updatePoints( $type, $user_id, $points, $meta = null ){
+		$args = func_get_args();
+		$args[2] = $args[2] - $this->getPoints( $args[1]) );
+		return call_user_func_array( array($this, 'addPoints'), $args );
 	} // end updatePoints
 
 	/**
