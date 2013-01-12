@@ -116,8 +116,8 @@ class CubePoints {
 
 		// creates database
 		global $wpdb;
-		if( (int) $this->getOption('db_version', 0) < 1 || $wpdb->get_var("SHOW TABLES LIKE '" . $this->prefixDb( 'cubepoints' ) . "'") != $this->prefixDb( 'cubepoints' ) ) {
-			$sql1 = "CREATE TABLE " . $this->prefixDb( 'cubepoints' ) . " (
+		if( (int) $this->getOption('db_version', 0) < 1 || $wpdb->get_var("SHOW TABLES LIKE '" . $this->db( 'cubepoints' ) . "'") != $this->db( 'cubepoints' ) ) {
+			$sql1 = "CREATE TABLE " . $this->db( 'cubepoints' ) . " (
 					id BIGINT(20) NOT NULL AUTO_INCREMENT,
 					uid BIGINT(20) NOT NULL,
 					type VARCHAR(255) NOT NULL,
@@ -125,7 +125,7 @@ class CubePoints {
 					timestamp TIMESTAMP NOT NULL,
 					UNIQUE KEY id (id)
 					);";
-			$sql2 = "CREATE TABLE " . $this->prefixDb( 'cubepoints_meta' ) . " (
+			$sql2 = "CREATE TABLE " . $this->db( 'cubepoints_meta' ) . " (
 					id BIGINT(20) NOT NULL AUTO_INCREMENT,
 					txn_id BIGINT(20) NOT NULL,
 					meta_key VARCHAR(255) NOT NULL,
@@ -179,8 +179,8 @@ class CubePoints {
 	
 		// removes database
 		global $wpdb;
-		$wpdb->query("DROP TABLE '" . $this->prefixDb( 'cubepoints' ) . "';");
-		$wpdb->query("DROP TABLE '" . $this->prefixDb( 'cubepoints_meta' ) . "';");
+		$wpdb->query("DROP TABLE '" . $this->db( 'cubepoints' ) . "';");
+		$wpdb->query("DROP TABLE '" . $this->db( 'cubepoints_meta' ) . "';");
 		$this->deleteOption('cp_db_version');
 		
 		// removes plugin options
@@ -264,10 +264,10 @@ class CubePoints {
 	 * @param string $db Name of database to be prepended
 	 * @return string Name of database prepended by WordPress' prefix
 	 */
-	public function prefixDb( $db ) {
+	public function db( $db ) {
 		global $wpdb;
 		return $wpdb->base_prefix . $db;
-	} // end prefixDb
+	} // end db
 
 	/**
 	 * Returns values for a named option.
@@ -414,7 +414,7 @@ class CubePoints {
 	 * @param int $points Number of points to add.
 	 * @return void
 	 */
-	public function alterPoints( $user_id, $points ){
+	public function alterPoints( $user_id, $points ) {
 		$this->setPoints( $user_id , $this->getPoints($user_id) + $points );
 	} // end addPoints
 
@@ -424,7 +424,7 @@ class CubePoints {
 	 * @param int $points Number of points.
 	 * @return string Points with prefix and suffix.
 	 */
-	public function formatPoints( $points ){
+	public function formatPoints( $points ) {
 		if($points == 0) { $points = '0'; }
 		return $this->getOption('prefix') . $points . $this->getOption('suffix');
 	} //end formatPoints
@@ -452,9 +452,100 @@ class CubePoints {
 	} // end displayPoints
 
 	/**
+	 * Adds or updates transaction meta
+	 *
+	 * @param id $transaction_id Transaction ID.
+	 * @param string $meta_key The key of the meta.
+	 * @param string $meta_value The value of the meta.
+	 * @return void
+	 */
+	public function setTransactionMeta( $transaction_id, $meta_key, $meta_value ) {
+		global $wpdb;
+		if( $this->getTransactionMeta( $transaction_id, $meta_key ) == null ) {
+			$wpdb->insert(
+				$this->db('cubepoints_meta'),
+				array(
+					'txn_id' => $transaction_id,
+					'meta_key' => $meta_key,
+					'meta_value' => serialize($meta_value)
+				),
+				array( '%d', '%s', '%s' )
+			);
+		} else {
+			$wpdb->update(
+				$this->db('cubepoints_meta'),
+				array( 'meta_value' => serialize($meta_value) ),
+				array( 'txn_id' => $transaction_id,	'meta_key' => $meta_key	),
+				array( '%s' ),
+				array( '%d', '%s' )
+			);
+		}
+	}
+
+	/**
+	 * Deletes a transaction meta from database
+	 *
+	 * @param id $transaction_id Transaction ID.
+	 * @param string $meta_key The key of the meta to delete.
+	 * @return void
+	 */
+	public function deleteTransactionMeta( $transaction_id, $meta_key ) {
+		global $wpdb;
+		$wpdb->query(
+			$wpdb->prepare(
+				"DELETE FROM `{$this->db('cubepoints_meta')}` WHERE txn_id = %d AND meta_key = %s",
+				$transaction_id,
+				$meta_key
+			)
+		);
+	}
+
+	/**
+	 * Retrieves a transaction meta from database
+	 *
+	 * @param id $transaction_id Transaction ID.
+	 * @param string $meta_key The key of the meta to delete.
+	 * @return mixed Value of the meta for the given transaction.
+	 */
+	public function getTransactionMeta( $transaction_id, $meta_key ) {
+		global $wpdb;
+		$meta_value = $wpdb->get_var(
+			$wpdb->prepare(
+				"SELECT meta_value FROM `{$this->db('cubepoints_meta')}` WHERE txn_id = %d AND meta_key = %s",
+				$transaction_id,
+				$meta_key
+			)
+		);
+		if( is_serialized($meta_value) ){
+			$meta_value = unserialize($meta_value);
+		}
+		return $meta_value;
+	}
+
+	/**
+	 * Retrieves all transaction metas associated to a given transaction
+	 *
+	 * @param id $transaction_id Transaction ID.
+	 * @return array Metas associated with the given transaction.
+	 */
+	public function getAllTransactionMetas( $transaction_id ) {
+		global $wpdb;
+		$raw_metas = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT meta_key, meta_value FROM `{$this->db('cubepoints_meta')}` WHERE txn_id = %d",
+				$transaction_id
+			)
+		);
+		$metas = array();
+		foreach( $raw_metas as $meta ) {
+			$metas[$meta->meta_key] = unserialize($meta->meta_value);
+		}
+		return $metas;
+	}
+
+	/**
 	 * Adds transaction to logs database
-	 * 
-	 * @TODO: to edit to reflect new database schema
+	 *
 	 * @access private
 	 *
 	 * @param string $type An ID used internally by CubePoints to determine the type of transaction.
@@ -463,13 +554,23 @@ class CubePoints {
 	 * @param array $metas Array of metas associated with transaction.
 	 * @return void
 	 */
-	public function _addLog( $type, $user_id, $points, $metas ){
+	private function _addLog( $type, $user_id, $points, $metas ) {
 		global $wpdb;
+		$wpdb->query(
+			$wpdb->prepare(
+				"INSERT INTO `{$this->db('cubepoints')}` (`uid`, `type`, `points`) VALUES ('%d', '%s', '%d')",
+				$user_id,
+				$type,
+				$points
+			)
+		);
+		$transaction_id = $wpdb->insert_id;
+		
+		foreach($metas as $meta) {
+			$this->setTransactionMeta($transaction_id, $meta[0], $meta[1]);
+		}
 
-		// @TODO: serialize and add meta key to database
-		// @TODO: change this:
-		$wpdb->query("INSERT INTO `" . $this->prefixDb('cubepoints') . "` (`uid`, `type`, `points`, `timestamp`) " .
-					  "VALUES ('".$user_id."', '".$type."', '".$data1."', '".$data2."', '".$data3."', '".$points."', ".time().");");
+		do_action( 'cubepoints_addPoints', $transaction_id, $type, $user_id, $points, $metas );
 	} // end _addLog
 
 	/**
@@ -481,7 +582,7 @@ class CubePoints {
 	 * @param array $meta,... Optional. Any supplementary data associated with transaction.
 	 * @return bool|array True if points were added successfully. Array of error codes if otherwise.
 	 */
-	public function addPoints( $type, $user_id, $points, $meta = null ){
+	public function addPoints( $type, $user_id, $points, $meta = null ) {
 		$errors = array();
 
 		if( $points == 0 )
@@ -503,8 +604,7 @@ class CubePoints {
 
 		if( count( $errors ) == 0 ) {
 			$this->alterPoints( $user_id, $points );
-			$this->_addLog( $type, $user_id, $points, $data1, $data2, $data3 );
-			do_action( 'cubepoints_addPoints', $type, $user_id, $points, $metas );
+			$this->_addLog( $type, $user_id, $points, $metas );
 			return true;
 		}
 		return $errors;
@@ -519,9 +619,9 @@ class CubePoints {
 	 * @param array $meta,... Optional. Any supplementary data associated with transaction.
 	 * @return bool|array True if points were added successfully. Array of error codes if otherwise.
 	 */
-	public function updatePoints( $type, $user_id, $points, $meta = null ){
+	public function updatePoints( $type, $user_id, $points, $meta = null ) {
 		$args = func_get_args();
-		$args[2] = $args[2] - $this->getPoints( $args[1]) );
+		$args[2] = $args[2] - $this->getPoints( $args[1] );
 		return call_user_func_array( array($this, 'addPoints'), $args );
 	} // end updatePoints
 
