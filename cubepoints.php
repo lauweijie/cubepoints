@@ -116,8 +116,8 @@ class CubePoints {
 
 		// creates database
 		global $wpdb;
-		if( (int) $this->getOption('db_version', 0) < 1 || $wpdb->get_var("SHOW TABLES LIKE '" . $this->db( 'cubepoints' ) . "'") != $this->db( 'cubepoints' ) ) {
-			$sql1 = "CREATE TABLE " . $this->db( 'cubepoints' ) . " (
+		if( (int) $this->getOption('db_version', 0) < 1 || $wpdb->get_var("SHOW TABLES LIKE '{$this->db('cubepoints')}'") != $this->db('cubepoints') ) {
+			$sql1 = "CREATE TABLE {$this->db('cubepoints')} (
 					id BIGINT(20) NOT NULL AUTO_INCREMENT,
 					uid BIGINT(20) NOT NULL,
 					type VARCHAR(255) NOT NULL,
@@ -125,7 +125,7 @@ class CubePoints {
 					timestamp TIMESTAMP NOT NULL,
 					UNIQUE KEY id (id)
 					);";
-			$sql2 = "CREATE TABLE " . $this->db( 'cubepoints_meta' ) . " (
+			$sql2 = "CREATE TABLE {$this->db('cubepoints_meta')} (
 					id BIGINT(20) NOT NULL AUTO_INCREMENT,
 					txn_id BIGINT(20) NOT NULL,
 					meta_key VARCHAR(255) NOT NULL,
@@ -179,8 +179,8 @@ class CubePoints {
 	
 		// removes database
 		global $wpdb;
-		$wpdb->query("DROP TABLE '" . $this->db( 'cubepoints' ) . "';");
-		$wpdb->query("DROP TABLE '" . $this->db( 'cubepoints_meta' ) . "';");
+		$wpdb->query("DROP TABLE {$this->db('cubepoints')}");
+		$wpdb->query("DROP TABLE {$this->db('cubepoints_meta')}");
 		$this->deleteOption('cp_db_version');
 		
 		// removes plugin options
@@ -371,7 +371,7 @@ class CubePoints {
 	 * @return int|bool ID of the current logged in user. False if no user logged in.
 	 */
 	public function currentUserId() {
-		if( ! is_user_logged_in() ){
+		if( is_user_logged_in() ){
 			global $current_user;
 			get_currentuserinfo();
 			return $current_user->ID;
@@ -480,7 +480,7 @@ class CubePoints {
 				array( '%d', '%s' )
 			);
 		}
-	}
+	} // end setTransactionMeta
 
 	/**
 	 * Deletes a transaction meta from database
@@ -498,7 +498,7 @@ class CubePoints {
 				$meta_key
 			)
 		);
-	}
+	} // end deleteTransactionMeta
 
 	/**
 	 * Retrieves a transaction meta from database
@@ -520,7 +520,7 @@ class CubePoints {
 			$meta_value = unserialize($meta_value);
 		}
 		return $meta_value;
-	}
+	} // end getTransactionMeta
 
 	/**
 	 * Retrieves all transaction metas associated to a given transaction
@@ -541,7 +541,7 @@ class CubePoints {
 			$metas[$meta->meta_key] = unserialize($meta->meta_value);
 		}
 		return $metas;
-	}
+	} // end getAllTransactionMetas
 
 	/**
 	 * Adds transaction to logs database
@@ -831,16 +831,14 @@ class CubePoints {
 	 *
 	 * @return void
 	 */
-	public function moduleActionHook( $module ) {
+	public function moduleActionHook() {
 		if( ! is_admin() || $_GET['page'] != 'cubepoints_modules' || empty( $_GET['action'] ) )
 			return;
 
-		$redirUri = $_SERVER[REQUEST_URI];
-		$redirUri = remove_query_arg( '_wpnonce', $redirUri );
-		$redirUri = remove_query_arg( 'action', $redirUri );
-		$redirUri = remove_query_arg( 'module', $redirUri );
-		$redirUri = remove_query_arg( 'activate', $redirUri );
-		$redirUri = remove_query_arg( 'deactivate', $redirUri );
+		$redirUri = remove_query_arg(
+						array( '_wpnonce', 'action', 'module', 'activate', 'deactivate' ),
+						$_SERVER[REQUEST_URI]
+					);
 
 		if( $_GET['action'] == 'activate_module' && ! empty( $_GET['module'] ) && wp_verify_nonce( $_GET['_wpnonce'], 'activate_module_' . $_GET['module'] ) ) {
 			$this->activateModule( $_GET['module'] );
@@ -910,8 +908,8 @@ class CubePoints {
 
 		if( ! $this->getOption( 'allow_negative_points' ) && $points < 0 )
 			$points = 0;
-		
-		$this->updatePoints( 'admin', $user_id, $points, $this->currentUserId );
+
+		$this->updatePoints( 'admin', $user_id, $points, array( 'user', $this->currentUserId() ) );
 		
 	} // end userProfilePoints
 
@@ -967,10 +965,7 @@ class CubePoints {
 	 * @return void
 	 */
 	public function adminPageTransactions() {
-		echo '<div class="wrap">';
-		echo '<div id="icon-edit-pages" class="icon32"></div>';
-		echo '<h2>' . __('CubePoints', 'cubepoints') . ' ' . __('Transactions', 'cubepoints') . '</h2>';
-		echo '</div>';
+		include 'views/admin_transactions.php';
 	} // end adminPageTransactions
 
 	/**
