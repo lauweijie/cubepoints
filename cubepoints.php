@@ -43,27 +43,27 @@ class CubePoints {
 	 */
 	function __construct() {
 
-		// load modules
+		// Load modules
 		$this->_loadModules();
 
-		// handles activation and deactivation of modules
+		// Handles activation and deactivation of modules
 		add_action( 'init', array( $this, 'moduleActionHook' ) );
 				
-		// load plugin text domain
+		// Load plugin text domain
 		add_action( 'init', array( $this, 'textdomain' ) );
 
-		// Register admin styles and scripts
-		add_action( 'admin_print_styles', array( $this, 'registerAdminStyles' ) );
-		add_action( 'admin_enqueue_scripts', array( $this, 'registerAdminScripts' ) );
-	
-		// Register site styles and scripts
-		add_action( 'wp_enqueue_scripts', array( $this, 'registerPluginStyles' ) );
-		add_action( 'wp_enqueue_scripts', array( $this, 'registerPluginScripts' ) );
-
+		// Handles plugin activation, deactivation and uninstall
 		register_activation_hook( __FILE__, array( $this, 'activate' ) );
 		register_deactivation_hook( __FILE__, array( $this, 'deactivate' ) );
 		register_uninstall_hook( __FILE__, array( $this, 'uninstall' ) );
 		
+		// Adds filters for saving screen options
+		add_filter('set-screen-option', array($this, 'adminPageTransactionsScreenOptionsSet'), 10, 3);
+		
+		// Add filters for displaying built-in transaction types
+		add_filter( 'cubepoints_txn_desc_admin', array($this, 'txnDescAdmin'), 10, 2 );
+		add_filter( 'cubepoints_txn_desc_custom', array($this, 'txnDescCustom'), 10, 2 );
+
 		// Add admin menus
 		if( function_exists('is_multisite') && is_multisite() ) {
 			add_action( 'network_admin_menu', array( $this, 'addAdminMenu' ) );
@@ -84,20 +84,6 @@ class CubePoints {
 		add_action( 'edit_user_profile', array( $this, 'userProfilePoints' ) );
 		add_action( 'personal_options_update', array( $this, 'userProfilePointsUpdate' ) );
 		add_action( 'edit_user_profile_update', array( $this, 'userProfilePointsUpdate' ) );
-		
-	    /*
-	     * TODO:
-	     * Define the custom functionality for your plugin. The first parameter of the
-	     * add_action/add_filter calls are the hooks into which your code should fire.
-	     *
-	     * The second parameter is the function name located within this class. See the stubs
-	     * later in the file.
-	     *
-	     * For more information: 
-	     * http://codex.wordpress.org/Plugin_API#Hooks.2C_Actions_and_Filters
-	     */
-	    add_action( 'TODO', array( $this, 'action_method_name' ) );
-	    add_filter( 'TODO', array( $this, 'filter_method_name' ) );
 		
 		do_action( 'cubepoints_loaded' );
 
@@ -122,7 +108,7 @@ class CubePoints {
 					uid BIGINT(20) NOT NULL,
 					type VARCHAR(255) NOT NULL,
 					points BIGINT(20) NOT NULL,
-					timestamp TIMESTAMP NOT NULL,
+					timestamp DATETIME NOT NULL,
 					UNIQUE KEY id (id)
 					);";
 			$sql2 = "CREATE TABLE {$this->db('cubepoints_meta')} (
@@ -204,46 +190,6 @@ class CubePoints {
 	public function textdomain() {
 		load_plugin_textdomain( 'cubepoints', false, dirname( plugin_basename( __FILE__ ) ) . '/lang' );
 	}
-
-	/**
-	 * Registers and enqueues admin-specific styles.
-	 */
-	public function registerAdminStyles() {
-	
-		// TODO change 'plugin-name' to the name of your plugin
-		wp_enqueue_style( 'plugin-name-admin-styles', plugins_url( 'plugin-name/css/admin.css' ) );
-	
-	} // end registerAdminStyles
-
-	/**
-	 * Registers and enqueues admin-specific JavaScript.
-	 */	
-	public function registerAdminScripts() {
-	
-		// TODO change 'plugin-name' to the name of your plugin
-		wp_enqueue_script( 'plugin-name-admin-script', plugins_url( 'plugin-name/js/admin.js' ) );
-	
-	} // end registerAdminScripts
-
-	/**
-	 * Registers and enqueues plugin-specific styles.
-	 */
-	public function registerPluginStyles() {
-	
-		// TODO change 'plugin-name' to the name of your plugin
-		wp_enqueue_style( 'plugin-name-plugin-styles', plugins_url( 'plugin-name/css/display.css' ) );
-	
-	} // end registerPluginStyles
-
-	/**
-	 * Registers and enqueues plugin-specific scripts.
-	 */
-	public function registerPluginScripts() {
-	
-		// TODO change 'plugin-name' to the name of your plugin
-		wp_enqueue_script( 'plugin-name-plugin-script', plugins_url( 'plugin-name/js/display.js' ) );
-	
-	} // end registerPluginScripts
 
 	/**
 	 * Returns current plugin version.
@@ -332,7 +278,7 @@ class CubePoints {
 	 * @param int $timestamp Unix timestamp.
 	 * @return string Relative time difference between given timestamp and current time.
 	 */
-	public function relativeTime( $timestamp ) {
+	static function relativeTime( $timestamp ) {
 		$diff = abs( time() - $timestamp );
 
 		if ($diff > 0) {
@@ -558,7 +504,7 @@ class CubePoints {
 		global $wpdb;
 		$wpdb->query(
 			$wpdb->prepare(
-				"INSERT INTO `{$this->db('cubepoints')}` (`uid`, `type`, `points`) VALUES ('%d', '%s', '%d')",
+				"INSERT INTO `{$this->db('cubepoints')}` (`uid`, `type`, `points`, `timestamp`) VALUES ('%d', '%s', '%d', NOW())",
 				$user_id,
 				$type,
 				$points
@@ -825,7 +771,6 @@ class CubePoints {
 		}
 	} // end deactivateModule
 
-
 	/**
 	 * Hook for the modules admin page for activation and deactivation of modules
 	 *
@@ -914,6 +859,33 @@ class CubePoints {
 	} // end userProfilePoints
 
 	/*--------------------------------------------*
+	 * Built-in Transaction Types
+	 *--------------------------------------------*/
+
+	/**
+	 * Transaction Description: admin
+	 *
+	 * @return string Description of transaction
+	 */
+	public function txnDescAdmin( $description, $details ) {
+		$user = get_userdata( $this->getTransactionMeta($details->id, 'user') );
+		if( $user ) {
+			return sprintf( __('Points adjustment by <a href="user-edit.php?user_id=%d">%s</a>', 'cubepoints'), $user->ID, $user->user_login );
+		} else {
+			return __('Points adjustment', 'cubepoints');
+		}
+	}
+
+	/**
+	 * Transaction Description: custom
+	 *
+	 * @return string Description of transaction
+	 */
+	public function txnDescCustom( $description, $details ) {
+		return $this->getTransactionMeta($details->id, 'custom');
+	}
+
+	/*--------------------------------------------*
 	 * Admin Pages
 	 *--------------------------------------------*/
 
@@ -931,7 +903,7 @@ class CubePoints {
 			array($this, 'adminPageTransactions')
 		);
 
-		add_submenu_page(
+		$transactions = add_submenu_page(
 			'cubepoints_transactions',
 			__('CubePoints', 'cubepoints') . ' &ndash; ' .  __('Transactions', 'cubepoints'),
 			__('Transactions', 'cubepoints'),
@@ -939,8 +911,9 @@ class CubePoints {
 			'cubepoints_transactions',
 			array($this, 'adminPageTransactions')
 		);
+		add_action( "load-{$transactions}", array($this, 'adminPageTransactionsScreenOptions') );
 
-		add_submenu_page(
+		$settings = add_submenu_page(
 			'cubepoints_transactions',
 			__('CubePoints', 'cubepoints') . ' &ndash; ' .  __('Settings', 'cubepoints'),
 			__('Settings', 'cubepoints'),
@@ -949,7 +922,7 @@ class CubePoints {
 			array($this, 'adminPageSettings')
 		);
 
-		add_submenu_page(
+		$modules = add_submenu_page(
 			'cubepoints_transactions',
 			__('CubePoints', 'cubepoints') . ' &ndash; ' .  __('Modules', 'cubepoints'),
 			__('Modules', 'cubepoints'),
@@ -957,6 +930,7 @@ class CubePoints {
 			'cubepoints_modules',
 			array($this, 'adminPageModules')
 		);
+
 	} // end addAdminMenu
 
 	/**
@@ -967,6 +941,32 @@ class CubePoints {
 	public function adminPageTransactions() {
 		include 'views/admin_transactions.php';
 	} // end adminPageTransactions
+
+	/**
+	 * Screen options for the Transactions admin page
+	 *
+	 * @return void
+	 */
+	public function adminPageTransactionsScreenOptions() {
+		$option = 'per_page';
+		$args = array(
+			 'label' => 'Transactions',
+			 'default' => 10,
+			 'option' => 'cubepoints_transactions_per_page'
+			 );
+		add_screen_option( $option, $args );
+	}
+
+	/**
+	 * Filter for saving screen options in the Transactions admin page
+	 *
+	 * @return string|void
+	 */
+	public function adminPageTransactionsScreenOptionsSet($status, $option, $value) {
+		if ( 'cubepoints_transactions_per_page' == $option ) {
+			return $value;
+		}
+	}
 
 	/**
 	 * Admin Page: Manage

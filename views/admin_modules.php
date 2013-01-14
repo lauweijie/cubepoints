@@ -17,12 +17,7 @@ if ( ! function_exists( 'add_action' ) )
 	<?php endif; ?>
 
 	<?php
-		$currUri = $_SERVER[REQUEST_URI];
-		$currUri = remove_query_arg( '_wpnonce', $currUri );
-		$currUri = remove_query_arg( 'action', $currUri );
-		$currUri = remove_query_arg( 'module', $currUri );
-		$currUri = remove_query_arg( 'activate', $currUri );
-		$currUri = remove_query_arg( 'deactivate', $currUri );
+		$currUri = remove_query_arg( array('_wpnonce', 'action', 'module', 'activate', 'deactivate'), $_SERVER[REQUEST_URI] );
 		$modules = $this->availableModules();
 		$activeModules = array();
 		$inactiveModules = array();
@@ -100,6 +95,9 @@ if ( ! function_exists( 'add_action' ) )
 									<span class="activate"><a href="<?php echo wp_nonce_url( add_query_arg( array( 'action' => 'activate_module', 'module' => $module ) ), 'activate_module_' . $module ); ?>" title="<?php _e('Activate this module', 'cubepoints'); ?>" class="edit"><?php _e('Activate', 'cubepoints'); ?></a></span>
 								<?php else : ?>
 									<span class="deactivate"><a href="<?php echo wp_nonce_url( add_query_arg( array( 'action' => 'deactivate_module', 'module' => $module ) ), 'deactivate_module_' . $module ); ?>" title="<?php _e('Deactivate this module', 'cubepoints'); ?>" class="edit"><?php _e('Deactivate', 'cubepoints'); ?></a></span>
+									<?php if( ! empty($moduleDetails['settings_link']) ): ?>
+										| <a href="<?php echo $moduleDetails['settings_link']; ?>">Settings</a>
+									<?php endif; ?>
 								<?php endif; ?>
 							</div>
 						</td>
