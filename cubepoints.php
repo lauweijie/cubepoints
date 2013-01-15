@@ -58,7 +58,7 @@ class CubePoints {
 		register_uninstall_hook( __FILE__, array( $this, 'uninstall' ) );
 		
 		// Adds filters for saving screen options
-		add_filter('set-screen-option', array($this, 'adminPageTransactionsScreenOptionsSet'), 10, 3);
+		add_filter( 'set-screen-option', array($this, 'adminPageTransactionsScreenOptionsSet'), 10, 3 );
 		
 		// Add filters for displaying built-in transaction types
 		add_filter( 'cubepoints_txn_desc_admin', array($this, 'txnDescAdmin'), 10, 2 );
@@ -931,6 +931,17 @@ class CubePoints {
 			array($this, 'adminPageModules')
 		);
 
+		$dashboard = add_submenu_page(
+			'cubepoints_transactions',
+			__('CubePoints', 'cubepoints') . ' &ndash; ' .  __('Dashboard', 'cubepoints'),
+			__('Dashboard', 'cubepoints'),
+			'update_core',
+			'cubepoints_dashboard',
+			array($this, 'adminPageDashboard')
+		);
+		add_action( "load-{$dashboard}", array($this, 'adminPageDashboardPreload') );
+		add_action( "admin_footer-{$dashboard}", array($this, 'adminPageDashboardFooter') );
+
 	} // end addAdminMenu
 
 	/**
@@ -974,10 +985,7 @@ class CubePoints {
 	 * @return void
 	 */
 	public function adminPageSettings() {
-		echo '<div class="wrap">';
-		echo '<div id="icon-options-general" class="icon32"></div>';
-		echo '<h2>' . __('CubePoints', 'cubepoints') . ' ' . __('Settings', 'cubepoints') . '</h2>';
-		echo '</div>';
+		include 'views/admin_settings.php';
 	} // end adminPageSettings
 
 	/**
@@ -988,6 +996,28 @@ class CubePoints {
 	public function adminPageModules() {
 		include 'views/admin_modules.php';
 	} // end adminPageSettings
+
+	/**
+	 * Admin Page: Dashboard
+	 *
+	 * @return void
+	 */
+	public function adminPageDashboard() {
+		include 'views/admin_dashboard.php';
+	} // end adminPageSettings
+
+	// @TODO: Add phpdoc
+	public function adminPageDashboardPreload() {
+		wp_enqueue_script('postbox');
+		do_action('add_meta_boxes_cubepoints_page_cubepoints_dashboard', null);
+		do_action('add_meta_boxes', 'cubepoints_page_cubepoints_dashboard', null);
+		add_screen_option('layout_columns', array('max' => 3, 'default' => 2) );
+	}
+
+	// @TODO: Add phpdoc
+	public function adminPageDashboardFooter() {
+		echo '<script>jQuery(document).ready(function(){ postboxes.add_postbox_toggles(pagenow); });</script>';
+	}
 
 } // end CubePoints class
 
