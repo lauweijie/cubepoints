@@ -883,15 +883,26 @@ class CubePoints {
 	 */
 	public function addAdminMenu() {
 		add_menu_page(
-			__('CubePoints', 'cubepoints') . ' &ndash; ' .  __('Settings', 'cubepoints'),
+			__('CubePoints', 'cubepoints') . ' &ndash; ' .  __('Dashboard', 'cubepoints'),
 			__('CubePoints', 'cubepoints'),
 			'update_core',
-			'cubepoints_transactions',
-			array($this, 'adminPageTransactions')
+			'cubepoints_dashboard',
+			array($this, 'adminPageDashboard')
 		);
 
+		$dashboard = add_submenu_page(
+			'cubepoints_dashboard',
+			__('CubePoints', 'cubepoints') . ' &ndash; ' .  __('Dashboard', 'cubepoints'),
+			__('Dashboard', 'cubepoints'),
+			'update_core',
+			'cubepoints_dashboard',
+			array($this, 'adminPageDashboard')
+		);
+		add_action( "load-{$dashboard}", array($this, 'adminPageDashboardPreload') );
+		add_action( "admin_footer-{$dashboard}", array($this, 'adminPageDashboardFooter') );
+
 		$transactions = add_submenu_page(
-			'cubepoints_transactions',
+			'cubepoints_dashboard',
 			__('CubePoints', 'cubepoints') . ' &ndash; ' .  __('Transactions', 'cubepoints'),
 			__('Transactions', 'cubepoints'),
 			'update_core',
@@ -901,7 +912,7 @@ class CubePoints {
 		add_action( "load-{$transactions}", array($this, 'adminPageTransactionsScreenOptions') );
 
 		$settings = add_submenu_page(
-			'cubepoints_transactions',
+			'cubepoints_dashboard',
 			__('CubePoints', 'cubepoints') . ' &ndash; ' .  __('Settings', 'cubepoints'),
 			__('Settings', 'cubepoints'),
 			'update_core',
@@ -910,24 +921,13 @@ class CubePoints {
 		);
 
 		$modules = add_submenu_page(
-			'cubepoints_transactions',
+			'cubepoints_dashboard',
 			__('CubePoints', 'cubepoints') . ' &ndash; ' .  __('Modules', 'cubepoints'),
 			__('Modules', 'cubepoints'),
 			'update_core',
 			'cubepoints_modules',
 			array($this, 'adminPageModules')
 		);
-
-		$dashboard = add_submenu_page(
-			'cubepoints_transactions',
-			__('CubePoints', 'cubepoints') . ' &ndash; ' .  __('Dashboard', 'cubepoints'),
-			__('Dashboard', 'cubepoints'),
-			'update_core',
-			'cubepoints_dashboard',
-			array($this, 'adminPageDashboard')
-		);
-		add_action( "load-{$dashboard}", array($this, 'adminPageDashboardPreload') );
-		add_action( "admin_footer-{$dashboard}", array($this, 'adminPageDashboardFooter') );
 
 	} // end addAdminMenu
 

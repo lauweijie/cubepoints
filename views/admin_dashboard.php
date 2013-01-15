@@ -32,17 +32,17 @@ function cubepoints_dashboard_overview(){
 }
 
 add_meta_box( 
-    'cubepoints_dashboard_transactions',
-    __( 'Latest Transactions' ),
-    'cubepoints_dashboard_transactions',
-	'cubepoints_page_cubepoints_dashboard',
-    'normal' );
-
-add_meta_box( 
     'cubepoints_overview',
     __( 'CubePoints Overview' ),
     'cubepoints_dashboard_overview',
-	'cubepoints_page_cubepoints_dashboard',
+	'toplevel_page_cubepoints_dashboard',
+    'normal' );
+
+add_meta_box( 
+    'cubepoints_dashboard_transactions',
+    __( 'Latest Transactions' ),
+    'cubepoints_dashboard_transactions',
+	'toplevel_page_cubepoints_dashboard',
     'side' );
 
 ?>
