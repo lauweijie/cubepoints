@@ -6,11 +6,8 @@ if(!class_exists('WP_List_Table')) {
 
 class CubePoints_Transactions_Table extends WP_List_Table {
 
-	public $context = '';
-
-    function __construct( $context = '' ) {
+    function __construct() {
         global $status, $page;
-		$this->context = $context;
         parent::__construct( array(
             'singular' => __('transaction', 'cubepoints'),
             'plural' => __('transactions', 'cubepoints'),
@@ -61,9 +58,6 @@ class CubePoints_Transactions_Table extends WP_List_Table {
     }
 
     function get_sortable_columns() {
-		if( $this->context == 'dashboard' ) {
-			return array();
-		}
         $sortable_columns = array(
             'user' => array('uid', false),
             'points' => array('points', false),
@@ -79,14 +73,10 @@ class CubePoints_Transactions_Table extends WP_List_Table {
 		
 		$cubepoints_table = $cubepoints->db('cubepoints');
 
-		if( $this->context == 'dashboard' ) {
-			$per_page = 10;
-		} else {
-			$user = get_current_user_id();
-			$screen = get_current_screen();
-			$screen_option = $screen->get_option('per_page', 'option');
-			$per_page = get_user_meta($user, $screen_option, true);
-		}
+		$user = get_current_user_id();
+		$screen = get_current_screen();
+		$screen_option = $screen->get_option('per_page', 'option');
+		$per_page = get_user_meta($user, $screen_option, true);
 
 		if ( empty ( $per_page) || $per_page < 1 ) {
 			$per_page = $screen->get_option( 'per_page', 'default' );
@@ -128,12 +118,6 @@ class CubePoints_Transactions_Table extends WP_List_Table {
 		}
 
 		$limit_start = ($current_page - 1) * $per_page;
-		
-		if( $this->context == 'dashboard' ) {
-			$limit_start = 0;
-			$total_pages = 1;
-			$total_items = $per_page;
-		}
 
         $this->items = $wpdb->get_results( "SELECT *, UNIX_TIMESTAMP(timestamp) as unix_timestamp FROM {$cubepoints_table} {$filter} ORDER BY {$orderby} {$order} LIMIT {$limit_start}, {$per_page}" );
 
