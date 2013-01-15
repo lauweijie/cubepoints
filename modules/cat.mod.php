@@ -1,6 +1,6 @@
 <?php
 
-class Zee extends CubePointsModule {
+class Zee extends CubePoints_Module {
 
 	public static $module = array(
 		'name' => 'Zee Module',
