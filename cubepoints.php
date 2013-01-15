@@ -278,7 +278,7 @@ class CubePoints {
 	 * @param int $timestamp Unix timestamp.
 	 * @return string Relative time difference between given timestamp and current time.
 	 */
-	static function relativeTime( $timestamp ) {
+	public function relativeTime( $timestamp ) {
 		$diff = abs( time() - $timestamp );
 
 		if ($diff > 0) {

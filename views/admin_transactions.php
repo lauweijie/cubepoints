@@ -53,8 +53,9 @@ class CubePoints_Transactions_Table extends WP_List_Table {
     }
 
     function column_time($item){
+		global $cubepoints;
 		$unix_time = $item->unix_timestamp;
-		$relative_time = CubePoints::relativeTime( $unix_time );
+		$relative_time = $cubepoints->relativeTime( $unix_time );
 		return sprintf('<span title="%s">%s</span>', $item->timestamp, $relative_time );
     }
 
@@ -68,8 +69,11 @@ class CubePoints_Transactions_Table extends WP_List_Table {
         return $sortable_columns;
     }
 
-    function prepare_items( $cubepoints_table ) {
+    function prepare_items() {
         global $wpdb;
+		global $cubepoints;
+		
+		$cubepoints_table = $cubepoints->db('cubepoints');
 
 		$user = get_current_user_id();
 		$screen = get_current_screen();
@@ -126,7 +130,6 @@ class CubePoints_Transactions_Table extends WP_List_Table {
     }
 
 }
-
 ?>
 
 <div class="wrap">
@@ -137,7 +140,7 @@ class CubePoints_Transactions_Table extends WP_List_Table {
 
 	<?php
 	    $transactionsTable = new CubePoints_Transactions_Table();
-		$transactionsTable->prepare_items( $this->db('cubepoints') );
+		$transactionsTable->prepare_items();
 	?>
 
 	<form id="transactions-user-filter" method="get">

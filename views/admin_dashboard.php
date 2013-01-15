@@ -10,7 +10,7 @@ if ( ! function_exists( 'add_action' ) )
 	</h2>
 
 
-<?php
+	<?php
 
 function my_custom_menu_page(){
 	echo 'hiworld';
