@@ -1,6 +1,6 @@
 <?php
 
-class Blah extends CubePoints_Module {
+class Blah extends CubePointsModule {
 
 	public static $module = array(
 		'name' => 'The Blah',

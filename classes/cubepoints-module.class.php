@@ -1,6 +1,6 @@
 <?php
 
-abstract class CubePoints_Module {
+abstract class CubePointsModule {
 
 	abstract public function main();
 	

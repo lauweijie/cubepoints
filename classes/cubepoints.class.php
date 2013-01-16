@@ -7,7 +7,6 @@ class CubePoints {
 	 *--------------------------------------------*/
 
 	private $loaded_modules = array();
-	public $admin_pages = array();
 	public $plugin_file = '';
 
 	/*--------------------------------------------*
@@ -614,7 +613,7 @@ class CubePoints {
 		if( ! class_exists( $module ) )
 			return false;
 
-		if( ! is_subclass_of( $module, 'CubePoints_Module' ) )
+		if( ! is_subclass_of( $module, 'CubePointsModule' ) )
 			return false;
 
 		$module_vars = get_class_vars( $module );
@@ -800,131 +799,19 @@ class CubePoints {
 	 * @return void
 	 */
 	public function addAdminMenu() {
-		add_menu_page(
-			__('CubePoints', 'cubepoints') . ' &ndash; ' .  __('Transactions', 'cubepoints'),
-			__('CubePoints', 'cubepoints'),
-			'update_core',
-			'cubepoints_transactions',
-			array($this, 'adminPageTransactions')
-		);
-
-		$transactions = add_submenu_page(
-			'cubepoints_transactions',
-			__('CubePoints', 'cubepoints') . ' &ndash; ' .  __('Transactions', 'cubepoints'),
-			__('Transactions', 'cubepoints'),
-			'update_core',
-			'cubepoints_transactions',
-			array($this, 'adminPageTransactions')
-		);
-		add_action( "load-{$transactions}", array($this, 'adminPageTransactionsScreenOptions') );
-
-		$settings = add_submenu_page(
-			'cubepoints_transactions',
-			__('CubePoints', 'cubepoints') . ' &ndash; ' .  __('Settings', 'cubepoints'),
-			__('Settings', 'cubepoints'),
-			'update_core',
-			'cubepoints_settings',
-			array($this, 'adminPageSettings')
-		);
-
-		$modules = add_submenu_page(
-			'cubepoints_transactions',
-			__('CubePoints', 'cubepoints') . ' &ndash; ' .  __('Modules', 'cubepoints'),
-			__('Modules', 'cubepoints'),
-			'update_core',
-			'cubepoints_modules',
-			array($this, 'adminPageModules')
-		);
-		
-		$this->admin_pages['transactions'] = $transactions;
-		$this->admin_pages['settings'] = $settings;
-		$this->admin_pages['modules'] = $modules;
-
-		add_filter('contextual_help', array($this, 'adminContextualHelp'), 10, 3);
-
+		$admin_menu = apply_filters( 'cubepoints_add_admin_menu', false );
+		if( $admin_menu ) {
+			$admin_pages = array();
+			add_menu_page($admin_menu[0], __('CubePoints', 'cubepoints'), $admin_menu[2], $admin_menu[3], $admin_menu[4]);
+			$admin_pages[$admin_menu[3]] = add_submenu_page($admin_menu[3], $admin_menu[0], $admin_menu[1], $admin_menu[2], $admin_menu[3], $admin_menu[4]);
+			$admin_submenus = apply_filters( 'cubepoints_add_admin_submenu', array() );
+			if( is_array($admin_submenus) ) {
+				foreach( $admin_submenus as $admin_submenu ) {
+					$admin_pages[$admin_submenu[3]] = add_submenu_page($admin_menu[3], $admin_submenu[0], $admin_submenu[1], $admin_submenu[2], $admin_submenu[3], $admin_submenu[4]);
+				}
+			}
+			do_action('cubepoints_admin_menus_loaded', $admin_pages);
+		}
 	} // end addAdminMenu
-
-	/**
-	 * Contextual help for admin pages
-	 *
-	 * @TODO: update phpdoc and finish up help screen
-	 *
-	 * @return $string
-	 */
-	public function adminContextualHelp($contextual_help, $screen_id, $screen) {
-		if( in_array($screen_id, $this->admin_pages) ) {
-
-			$content = '<p><strong>' . __( 'Getting started with CubePoints', 'cubepoints' ) . '</strong></p>';
-			$content .= '<p>' . sprintf( __( 'Getting started with CubePoints is easy! Once you\'ve activated the plugin, head over to the <a href="%s">Settings</a> page and make CubePoints work just the way you want.', 'cubepoints' ), 'admin.php?page=cubepoints_settings' ) . '</p>';
-			$screen->add_help_tab( array(
-				'id' => 'cubepoints_help_getting_started',
-				'title' => __( 'Getting Started', 'cubepoints' ),
-				'content' => $content
-			) );
-
-			$content = '<p><strong>' . __( 'Support CubePoints', 'cubepoints' ) . '</strong></p>';
-			$content .= '<p>' . sprintf( __( 'Love the way CubePoints work? Support CubePoints by making a small <a href="%s" target="_blank">donation</a>!', 'cubepoints' ), 'http://cubepoints.com/donate/?utm_source=plugin&utm_medium=contextual_help&utm_campaign=cubepoints' ) . '</p>';
-			$screen->add_help_tab( array(
-				'id' => 'cubepoints_help_donate',
-				'title' => __( 'Donate', 'cubepoints' ),
-				'content' => $content
-			) );
-
-		}
-	} // end adminContextualHelp	
-
-	/**
-	 * Admin Page: Transactions
-	 *
-	 * @return void
-	 */
-	public function adminPageTransactions() {
-		require_once( 'cubepoints-transactions-table.class.php' );
-		include dirname($this->plugin_file) . '/views/admin_transactions.php';
-	} // end adminPageTransactions
-
-	/**
-	 * Screen options for the Transactions admin page
-	 *
-	 * @return void
-	 */
-	public function adminPageTransactionsScreenOptions() {
-		$option = 'per_page';
-		$args = array(
-			 'label' => 'Transactions',
-			 'default' => 10,
-			 'option' => 'cubepoints_transactions_per_page'
-			 );
-		add_screen_option( $option, $args );
-	}
-
-	/**
-	 * Filter for saving screen options in the Transactions admin page
-	 *
-	 * @return string|void
-	 */
-	public function adminPageTransactionsScreenOptionsSet($status, $option, $value) {
-		if ( 'cubepoints_transactions_per_page' == $option ) {
-			return $value;
-		}
-	}
-
-	/**
-	 * Admin Page: Manage
-	 *
-	 * @return void
-	 */
-	public function adminPageSettings() {
-		include dirname($this->plugin_file) . '/views/admin_settings.php';
-	} // end adminPageSettings
-
-	/**
-	 * Admin Page: Modules
-	 *
-	 * @return void
-	 */
-	public function adminPageModules() {
-		include dirname($this->plugin_file) . '/views/admin_modules.php';
-	} // end adminPageSettings
 
 } // end CubePoints class

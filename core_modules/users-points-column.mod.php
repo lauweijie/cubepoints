@@ -1,6 +1,6 @@
 <?php
 
-class CubePointsUsersPointsColumn extends CubePoints_Module {
+class CubePointsUsersPointsColumn extends CubePointsModule {
 
 	public static $module = array(
 		'name' => 'User Points Column',

@@ -1,5 +1,105 @@
 <?php
 
+class CubePointsAdminPageTransactions extends CubePointsModule {
+
+	public static $module = array(
+		'name' => 'Admin Page: Transactions',
+		'version' => '1.0',
+		'author_name' => 'CubePoints',
+		'description' => 'Admin page to show the history of points transactions.',
+		'_core' => true
+	);
+
+	public function main() {
+		add_filter( 'cubepoints_add_admin_menu', array($this, 'adminPageTransactions_add') );
+		add_filter( 'set-screen-option', array($this, 'adminPageTransactionsScreenOptionsSet'), 10, 3 );
+		add_action( 'cubepoints_admin_menus_loaded', array($this, 'adminMenusLoaded') );
+	}
+
+	/**
+	 * Runs when all admin pages are loaded
+	 */
+	public function adminMenusLoaded( $admin_pages ) {
+		$page = $admin_pages['cubepoints_transactions'];
+		add_action( "load-{$page}", array($this, 'adminPageTransactionsScreenOptions') );
+	}
+
+	/**
+	 * Filter to add admin menu
+	 */
+	public function adminPageTransactions_add() {
+		return array(
+			__('CubePoints', 'cubepoints') . ' &ndash; ' .  __('Transactions', 'cubepoints'),
+			__('Transactions', 'cubepoints'),
+			'update_core',
+			'cubepoints_transactions',
+			array($this, 'adminPageTransactions')
+		);
+	}
+
+	/**
+	 * HTML for the Transactions page
+	 */
+	public function adminPageTransactions() {
+		?>
+		<div class="wrap">
+			<div id="icon-edit-pages" class="icon32"></div>
+			<h2>
+				<?php _e('CubePoints', 'cubepoints'); ?> <?php _e('Transactions', 'cubepoints'); ?>
+			</h2>
+
+			<?php
+				$transactionsTable = new CubePoints_Transactions_Table();
+				$transactionsTable->prepare_items();
+			?>
+
+			<form id="transactions-user-filter" method="get">
+				<input type="hidden" name="page" value="<?php echo $_REQUEST['page'] ?>" />
+				<?php $transactionsTable->search_box( __('Filter by User', 'cubepoints'), 'search_user' ); ?>
+			</form>
+
+			<form id="transactions-filter" method="get">
+				<input type="hidden" name="page" value="<?php echo $_REQUEST['page'] ?>" />
+				<?php $transactionsTable->display(); ?>
+			</form>
+		</div>
+
+		<style type="text/css">
+			.wp-list-table.transactions td {
+				padding: 5px 8px;
+			}
+		</style>
+		<?php
+	}
+
+	/**
+	 * Screen options for the Transactions admin page
+	 */
+	public function adminPageTransactionsScreenOptions() {
+		$option = 'per_page';
+		$args = array(
+			 'label' => 'Transactions',
+			 'default' => 10,
+			 'option' => 'cubepoints_transactions_per_page'
+			 );
+		add_screen_option( $option, $args );
+	}
+
+	/**
+	 * Filter for saving screen options in the Transactions admin page
+	 */
+	public function adminPageTransactionsScreenOptionsSet($status, $option, $value) {
+		if ( 'cubepoints_transactions_per_page' == $option ) {
+			return $value;
+		}
+	}
+
+}
+
+/**
+ * WP_List_Table class to generate the table of transactions
+ */
+
 if(!class_exists('WP_List_Table')) {
     require_once( ABSPATH . 'wp-admin/includes/class-wp-list-table.php' );
 }
@@ -78,7 +178,7 @@ class CubePoints_Transactions_Table extends WP_List_Table {
 		$screen_option = $screen->get_option('per_page', 'option');
 		$per_page = get_user_meta($user, $screen_option, true);
 
-		if ( empty ( $per_page) || $per_page < 1 ) {
+		if ( empty ($per_page) || $per_page < 1 ) {
 			$per_page = $screen->get_option( 'per_page', 'default' );
 		}
 

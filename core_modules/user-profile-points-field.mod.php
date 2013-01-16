@@ -1,6 +1,6 @@
 <?php
 
-class CubePointsUserProfilePointsField extends CubePoints_Module {
+class CubePointsUserProfilePointsField extends CubePointsModule {
 
 	public static $module = array(
 		'name' => 'User Profile Points Field',
