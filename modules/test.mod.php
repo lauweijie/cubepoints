@@ -12,7 +12,7 @@ class Test extends CubePoints_Module {
 	);
 
 	public function main() {
-	
+		
 	}
 
 }

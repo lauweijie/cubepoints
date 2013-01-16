@@ -9,11 +9,19 @@ class Blah extends CubePoints_Module {
 		'author_name' => 'Blah Co',
 		'author_uri' => 'http://blah.sg',
 		'description' => 'Blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah.',
-		'settings_link' => 'admin.php?page=cubepoints_settings#blah'
+		'settings_link' => 'admin.php?page=cubepoints_settings#blah',
+		'_core' => true
 	);
 
 	public function main() {
-		echo 'blah blah blah. this module is running!';
+		
+	}
+	
+	public function activate() {
+		echo 'This plugin is activating!';
+	}
+	public function deactivate() {
+		echo 'This plugin is deactivating!';
 	}
 	
 }

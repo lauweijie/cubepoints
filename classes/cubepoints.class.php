@@ -35,13 +35,6 @@ class CubePoints {
 		register_activation_hook( $this->plugin_file, array( $this, 'activate' ) );
 		register_deactivation_hook( $this->plugin_file, array( $this, 'deactivate' ) );
 		register_uninstall_hook( $this->plugin_file, array( $this, 'uninstall' ) );
-		
-		// Adds filters for saving screen options
-		add_filter( 'set-screen-option', array($this, 'adminPageTransactionsScreenOptionsSet'), 10, 3 );
-		
-		// Add filters for displaying built-in transaction types
-		add_filter( 'cubepoints_txn_desc_admin', array($this, 'txnDescAdmin'), 10, 2 );
-		add_filter( 'cubepoints_txn_desc_custom', array($this, 'txnDescCustom'), 10, 2 );
 
 		// Add admin menus
 		if( function_exists('is_multisite') && is_multisite() ) {
@@ -50,7 +43,7 @@ class CubePoints {
 		else {
 			add_action( 'admin_menu', array( $this, 'addAdminMenu' ) );
 		}
-		
+
 		// Add points column to the users table
 		add_action( 'manage_users_custom_column',  array( $this, 'manageUsersCustomColumn' ), 10, 3 );
 		add_filter( 'manage_users_columns', array( $this, 'manageUsersColumns' ) );
@@ -63,7 +56,14 @@ class CubePoints {
 		add_action( 'edit_user_profile', array( $this, 'userProfilePoints' ) );
 		add_action( 'personal_options_update', array( $this, 'userProfilePointsUpdate' ) );
 		add_action( 'edit_user_profile_update', array( $this, 'userProfilePointsUpdate' ) );
+
+		// Adds filters for saving screen options
+		add_filter( 'set-screen-option', array($this, 'adminPageTransactionsScreenOptionsSet'), 10, 3 );
 		
+		// Add filters for displaying built-in transaction types
+		add_filter( 'cubepoints_txn_desc_admin', array($this, 'txnDescAdmin'), 10, 2 );
+		add_filter( 'cubepoints_txn_desc_custom', array($this, 'txnDescCustom'), 10, 2 );
+
 		do_action( 'cubepoints_loaded' );
 
 	} // end constructor
@@ -531,6 +531,12 @@ class CubePoints {
 		foreach( $activatedModules as $module ) {
 				$this->_loadModule( $module );
 		}
+		foreach( $this->availableModules() as $module ) {
+			$module_vars = get_class_vars( $module );
+			if($module_vars['module']['_core'] && ! $this->moduleActivated($module)) {
+				$this->activateModule($module);
+			}
+		}
 		do_action( 'cubepoints_modules_loaded' );
 	} // end _loadModules
 
@@ -544,7 +550,9 @@ class CubePoints {
 	private function _includeModules() {
 		$modules = array_merge(
 			glob( dirname($this->plugin_file) . '/modules/*.mod.php' ),
-			glob( dirname($this->plugin_file) . '/modules/*/*.mod.php' )
+			glob( dirname($this->plugin_file) . '/modules/*/*.mod.php' ),
+			glob( dirname($this->plugin_file) . '/core_modules/*.mod.php' ),
+			glob( dirname($this->plugin_file) . '/core_modules/*/*.mod.php' )
 		);
 		foreach ( $modules as $module ) {
 			require_once( $module );
@@ -586,7 +594,7 @@ class CubePoints {
 		do_action( 'cubepoints_module_prerun', get_class($this) );
 		do_action( 'cubepoints_module_' . get_class($this) . '_prerun' );
 
-		$this->loaded_modules[$module] = new $module;
+		$this->loaded_modules[$module] = new $module( $this );
 		$this->loaded_modules[$module]->main();
 
 		do_action( 'cubepoints_module_postrun', get_class($this) );
@@ -668,6 +676,8 @@ class CubePoints {
 		$activatedModules = $this->getOption('activated_modules');
 		$activatedModules[] = $module;
 		$this->updateOption('activated_modules', $activatedModules);
+		
+		$this->_loadModule($module);
 
 		if( method_exists( $this->module($module), 'activate' ) ) {
 			$this->module($module)->activate();

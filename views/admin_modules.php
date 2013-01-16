@@ -21,12 +21,18 @@ if ( ! function_exists( 'add_action' ) )
 		$modules = $this->availableModules();
 		$activeModules = array();
 		$inactiveModules = array();
+		$allModules = array();
 		foreach( $modules as $module ) {
+			$moduleDetails = $this->moduleDetails( $module );
+			if( $moduleDetails['_core'] ) {
+				continue;
+			}
 			if( $this->moduleActivated( $module ) ) {
 				$activeModules[] = $module;
 			} else {
 				$inactiveModules[] = $module;
 			}
+			$allModules[] = $module;
 		}
 		$moduleStatus = $_GET['module_status'];
 		if( empty($moduleStatus) || ($moduleStatus == 'active' && count($activeModules) == 0) || ($moduleStatus == 'inactive' && count($inactiveModules) == 0) ) {
@@ -37,14 +43,14 @@ if ( ! function_exists( 'add_action' ) )
 		} else if( $moduleStatus == 'inactive' ) {
 			$modulesToDisplay = $inactiveModules;
 		} else {
-			$modulesToDisplay = $modules;
+			$modulesToDisplay = $allModules;
 		}
 		
 	?>
 
 	<?php if( count($modules) > 0 ) : ?>
 		<ul class="subsubsub">
-			<li class="all"><a href="<?php echo add_query_arg('module_status', 'all', $currUri); ?>"<?php echo ($moduleStatus == 'all') ? ' class="current"' : ''; ?>><?php _e('All', 'cubepoints'); ?> <span class="count">(<?php echo count($modules); ?>)</span></a></li>
+			<li class="all"><a href="<?php echo add_query_arg('module_status', 'all', $currUri); ?>"<?php echo ($moduleStatus == 'all') ? ' class="current"' : ''; ?>><?php _e('All', 'cubepoints'); ?> <span class="count">(<?php echo count($allModules); ?>)</span></a></li>
 			<?php if( count($activeModules) > 0 ) : ?>
 				<li class="active">| <a href="<?php echo add_query_arg('module_status', 'active', $currUri); ?>"<?php echo ($moduleStatus == 'active') ? ' class="current"' : ''; ?>><?php _e('Active', 'cubepoints'); ?> <span class="count">(<?php echo count($activeModules); ?>)</span></a></li>
 			<?php endif; ?>
