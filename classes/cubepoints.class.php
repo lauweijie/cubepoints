@@ -7,6 +7,7 @@ class CubePoints {
 	 *--------------------------------------------*/
 
 	private $loaded_modules = array();
+	public $admin_pages = array();
 	public $plugin_file = '';
 
 	/*--------------------------------------------*
@@ -66,6 +67,10 @@ class CubePoints {
 		do_action( 'cubepoints_loaded' );
 
 	} // end constructor
+
+	/*--------------------------------------------*
+	 * Plugin-related Methods
+	 *--------------------------------------------*/
 
 	/**
 	 * Fired when the plugin is activated.
@@ -234,76 +239,9 @@ class CubePoints {
 		return delete_site_option( $option );
 	} // end deleteOption
 
-	/**
-	 * Removes the a specified capability from all roles
-	 *
-	 * @param string $cap Capability name.
-	 */
-	public function removeCapFromAllRoles( $cap ) {
-		global $wp_roles;
-		foreach( array_keys( $wp_roles->roles ) as $role ){
-			get_role( $role )->remove_cap( $cap );
-		}
-	} // end removeCapFromAllRoles
-
 	/*--------------------------------------------*
 	 * Core Functions
-	 *---------------------------------------------*/
-
-	/**
-	 * Gets difference in time.
-	 * 
-	 * @param int $timestamp Unix timestamp.
-	 * @return string Relative time difference between given timestamp and current time.
-	 */
-	public function relativeTime( $timestamp ) {
-		$diff = abs( time() - $timestamp );
-
-		if ($diff > 0) {
-			$chunks = array(
-				array(31536000, __('year', 'cubepoints'), __('years', 'cubepoints')),
-				array(2592000, __('month', 'cubepoints'), __('months', 'cubepoints')),
-				array(604800, __('week', 'cubepoints'), __('weeks', 'cubepoints')),
-				array(86400, __('day', 'cubepoints'), __('days', 'cubepoints')),
-				array(3600, __('hour', 'cubepoints'), __('hours', 'cubepoints')),
-				array(60, __('min', 'cubepoints'), __('mins', 'cubepoints')),
-				array(1, __('sec', 'cubepoints'), __('secs', 'cubepoints'))
-			);
-			for ($i = 0, $j = count($chunks); $i < $j; $i++) {
-				$seconds = $chunks[$i][0];
-				if (($count = floor($diff / $seconds)) != 0) {
-					break;
-				}
-			}
-			$name = ($count == 1) ? $chunks[$i][1] : $chunks[$i][2];
-		}
-		else {
-			$count = 0;
-			$name = 'secs';
-		}
-
-		if( time() > $timestamp ) {
-			return sprintf(__('%d %s ago', 'cubepoints'), $count, $name);
-		} else {
-			return sprintf(__('%d %s to go', 'cubepoints'), $count, $name);
-		}
-	} // end relativeTime
-
-	/**
-	 * Gets ID of the current logged in user.
-	 * 
-	 * @return int|bool ID of the current logged in user. False if no user logged in.
-	 */
-	public function currentUserId() {
-		if( is_user_logged_in() ){
-			global $current_user;
-			get_currentuserinfo();
-			return $current_user->ID;
-		}
-		else {
-			return false;
-		}
-	} // end currentUserId
+	 *--------------------------------------------*/
 
 	/**
 	 * Gets number of points for a specifed user.
@@ -376,6 +314,28 @@ class CubePoints {
 	} // end displayPoints
 
 	/**
+	 * Retrieves a transaction meta from database
+	 *
+	 * @param id $transaction_id Transaction ID.
+	 * @param string $meta_key The key of the meta to delete.
+	 * @return mixed Value of the meta for the given transaction.
+	 */
+	public function getTransactionMeta( $transaction_id, $meta_key ) {
+		global $wpdb;
+		$meta_value = $wpdb->get_var(
+			$wpdb->prepare(
+				"SELECT meta_value FROM `{$this->db('cubepoints_meta')}` WHERE txn_id = %d AND meta_key = %s",
+				$transaction_id,
+				$meta_key
+			)
+		);
+		if( is_serialized($meta_value) ){
+			$meta_value = unserialize($meta_value);
+		}
+		return $meta_value;
+	} // end getTransactionMeta
+
+	/**
 	 * Adds or updates transaction meta
 	 *
 	 * @param id $transaction_id Transaction ID.
@@ -423,28 +383,6 @@ class CubePoints {
 			)
 		);
 	} // end deleteTransactionMeta
-
-	/**
-	 * Retrieves a transaction meta from database
-	 *
-	 * @param id $transaction_id Transaction ID.
-	 * @param string $meta_key The key of the meta to delete.
-	 * @return mixed Value of the meta for the given transaction.
-	 */
-	public function getTransactionMeta( $transaction_id, $meta_key ) {
-		global $wpdb;
-		$meta_value = $wpdb->get_var(
-			$wpdb->prepare(
-				"SELECT meta_value FROM `{$this->db('cubepoints_meta')}` WHERE txn_id = %d AND meta_key = %s",
-				$transaction_id,
-				$meta_key
-			)
-		);
-		if( is_serialized($meta_value) ){
-			$meta_value = unserialize($meta_value);
-		}
-		return $meta_value;
-	} // end getTransactionMeta
 
 	/**
 	 * Retrieves all transaction metas associated to a given transaction
@@ -549,6 +487,10 @@ class CubePoints {
 		return call_user_func_array( array($this, 'addPoints'), $args );
 	} // end updatePoints
 
+	/*--------------------------------------------*
+	 * CubePoints Modules
+	 *--------------------------------------------*/
+
 	/**
 	 * Gets the object of module specified if loaded
 	 *
@@ -563,13 +505,66 @@ class CubePoints {
 	} // end module
 
 	/**
-	 * Gets the number of loaded modules
+	 * Get module details from module name
 	 *
-	 * @return int Number of modules loaded.
+	 * @param string $moduleName Name of module.
+	 * @return array|bool $moduleDetails Details of a specified module.
 	 */
-	public function loadedModulesCount() {
-		return count($this->loaded_modules);
-	} // end loadedModulesCount
+	public function moduleDetails( $moduleName ) {
+		$classVars = get_class_vars( $moduleName );
+		$moduleDetails = $classVars['module'];
+		return $moduleDetails;
+	} // end moduleDetails
+
+	/**
+	 * Loads modules and runs activated modules
+	 *
+	 * @access private
+	 *
+	 * @return void
+	 */
+	private function _loadModules() {
+		do_action( 'cubepoints_pre_load_modules' );
+		$this->_includeModules();
+		do_action( 'cubepoints_modules_included' );
+		$activatedModules = $this->getOption('activated_modules', array());
+		foreach( $activatedModules as $module ) {
+				$this->_loadModule( $module );
+		}
+		do_action( 'cubepoints_modules_loaded' );
+	} // end _loadModules
+
+	/**
+	 * Includes all module files in the modules directory
+	 *
+	 * @access private
+	 *
+	 * @return void
+	 */
+	private function _includeModules() {
+		$modules = array_merge(
+			glob( dirname($this->plugin_file) . '/modules/*.mod.php' ),
+			glob( dirname($this->plugin_file) . '/modules/*/*.mod.php' )
+		);
+		foreach ( $modules as $module ) {
+			require_once( $module );
+		}
+	} // end _includeModules
+
+	/**
+	 * Get names of all available modules
+	 *
+	 * @return array $moduleNames Names of available modules.
+	 */
+	public function availableModules() {
+		$moduleNames = array();
+		foreach( get_declared_classes() as $className ){
+			if( $this->isModuleValid( $className ) ) {
+				$moduleNames[] = $className;
+			}
+		}
+		return $moduleNames;
+	} // end availableModules
 
 	/**
 	 * Loads a specified module by instantiating the class and running the module
@@ -610,77 +605,13 @@ class CubePoints {
 	} // end moduleLoaded
 
 	/**
-	 * Includes all module files in the modules directory
+	 * Gets the number of loaded modules
 	 *
-	 * @access private
-	 *
-	 * @return void
+	 * @return int Number of modules loaded.
 	 */
-	private function _includeModules() {
-		$modules = array_merge(
-			glob( dirname($this->plugin_file) . '/modules/*.mod.php' ),
-			glob( dirname($this->plugin_file) . '/modules/*/*.mod.php' )
-		);
-		foreach ( $modules as $module ) {
-			require_once( $module );
-		}
-	} // end _includeModules
-
-	/**
-	 * Loads modules and runs activated modules
-	 *
-	 * @access private
-	 *
-	 * @return void
-	 */
-	private function _loadModules() {
-		do_action( 'cubepoints_pre_load_modules' );
-		$this->_includeModules();
-		do_action( 'cubepoints_modules_included' );
-		$activatedModules = $this->getOption('activated_modules', array());
-		foreach( $activatedModules as $module ) {
-				$this->_loadModule( $module );
-		}
-		do_action( 'cubepoints_modules_loaded' );
-	} // end _loadModules
-
-
-	/**
-	 * Get names of all available modules
-	 *
-	 * @return array $moduleNames Names of available modules.
-	 */
-	public function availableModules() {
-		$moduleNames = array();
-		foreach( get_declared_classes() as $className ){
-			if( $this->isModuleValid( $className ) ) {
-				$moduleNames[] = $className;
-			}
-		}
-		return $moduleNames;
-	} // end availableModules
-
-
-	/**
-	 * Get module details from module name
-	 *
-	 * @param string $moduleName Name of module.
-	 * @return array|bool $moduleDetails Details of a specified module.
-	 */
-	public function moduleDetails( $moduleName ) {
-		$classVars = get_class_vars( $moduleName );
-		$moduleDetails = $classVars['module'];
-		return $moduleDetails;
-	} // end moduleDetails
-
-	/**
-	 * Checks if a specified module is activated
-	 *
-	 * @return bool True if module is activated. False if otherwise.
-	 */
-	public function moduleActivated( $module ) {
-		return in_array( $module, $this->getOption('activated_modules') );
-	} // end moduleActivated
+	public function loadedModulesCount() {
+		return count($this->loaded_modules);
+	} // end loadedModulesCount
 
 	/**
 	 * Checks for a valid CubePoints module
@@ -711,6 +642,15 @@ class CubePoints {
 
 		return true;
 	} // end isModuleValid
+
+	/**
+	 * Checks if a specified module is activated
+	 *
+	 * @return bool True if module is activated. False if otherwise.
+	 */
+	public function moduleActivated( $module ) {
+		return in_array( $module, $this->getOption('activated_modules') );
+	} // end moduleActivated
 
 	/**
 	 * Activates a specified module
@@ -785,6 +725,77 @@ class CubePoints {
 		wp_redirect( $redirUri );
 		exit;
 	} // end activateModule
+
+	/*--------------------------------------------*
+	 * Supporting Methods
+	 *--------------------------------------------*/
+
+	/**
+	 * Gets ID of the current logged in user.
+	 * 
+	 * @return int|bool ID of the current logged in user. False if no user logged in.
+	 */
+	static function currentUserId() {
+		if( is_user_logged_in() ){
+			global $current_user;
+			get_currentuserinfo();
+			return $current_user->ID;
+		}
+		else {
+			return false;
+		}
+	} // end currentUserId
+
+	/**
+	 * Gets difference in time.
+	 * 
+	 * @param int $timestamp Unix timestamp.
+	 * @return string Relative time difference between given timestamp and current time.
+	 */
+	static function relativeTime( $timestamp ) {
+		$diff = abs( time() - $timestamp );
+
+		if ($diff > 0) {
+			$chunks = array(
+				array(31536000, __('year', 'cubepoints'), __('years', 'cubepoints')),
+				array(2592000, __('month', 'cubepoints'), __('months', 'cubepoints')),
+				array(604800, __('week', 'cubepoints'), __('weeks', 'cubepoints')),
+				array(86400, __('day', 'cubepoints'), __('days', 'cubepoints')),
+				array(3600, __('hour', 'cubepoints'), __('hours', 'cubepoints')),
+				array(60, __('min', 'cubepoints'), __('mins', 'cubepoints')),
+				array(1, __('sec', 'cubepoints'), __('secs', 'cubepoints'))
+			);
+			for ($i = 0, $j = count($chunks); $i < $j; $i++) {
+				$seconds = $chunks[$i][0];
+				if (($count = floor($diff / $seconds)) != 0) {
+					break;
+				}
+			}
+			$name = ($count == 1) ? $chunks[$i][1] : $chunks[$i][2];
+		}
+		else {
+			$count = 0;
+			$name = 'secs';
+		}
+
+		if( time() > $timestamp ) {
+			return sprintf(__('%d %s ago', 'cubepoints'), $count, $name);
+		} else {
+			return sprintf(__('%d %s to go', 'cubepoints'), $count, $name);
+		}
+	} // end relativeTime
+
+	/**
+	 * Removes the a specified capability from all roles
+	 *
+	 * @param string $cap Capability name.
+	 */
+	static function removeCapFromAllRoles( $cap ) {
+		global $wp_roles;
+		foreach( array_keys( $wp_roles->roles ) as $role ){
+			get_role( $role )->remove_cap( $cap );
+		}
+	} // end removeCapFromAllRoles
 
 	/*--------------------------------------------*
 	 * Points column in the users table
@@ -917,8 +928,43 @@ class CubePoints {
 			'cubepoints_modules',
 			array($this, 'adminPageModules')
 		);
+		
+		$this->admin_pages['transactions'] = $transactions;
+		$this->admin_pages['settings'] = $settings;
+		$this->admin_pages['modules'] = $modules;
+
+		add_filter('contextual_help', array($this, 'adminContextualHelp'), 10, 3);
 
 	} // end addAdminMenu
+
+	/**
+	 * Contextual help for admin pages
+	 *
+	 * @TODO: update phpdoc and finish up help screen
+	 *
+	 * @return $string
+	 */
+	public function adminContextualHelp($contextual_help, $screen_id, $screen) {
+		if( in_array($screen_id, $this->admin_pages) ) {
+
+			$content = '<p><strong>' . __( 'Getting started with CubePoints', 'cubepoints' ) . '</strong></p>';
+			$content .= '<p>' . sprintf( __( 'Getting started with CubePoints is easy! Once you\'ve activated the plugin, head over to the <a href="%s">Settings</a> page and make CubePoints work just the way you want.', 'cubepoints' ), 'admin.php?page=cubepoints_settings' ) . '</p>';
+			$screen->add_help_tab( array(
+				'id' => 'cubepoints_help_getting_started',
+				'title' => __( 'Getting Started', 'cubepoints' ),
+				'content' => $content
+			) );
+
+			$content = '<p><strong>' . __( 'Support CubePoints', 'cubepoints' ) . '</strong></p>';
+			$content .= '<p>' . sprintf( __( 'Love the way CubePoints work? Support CubePoints by making a small <a href="%s" target="_blank">donation</a>!', 'cubepoints' ), 'http://cubepoints.com/donate/?utm_source=plugin&utm_medium=contextual_help&utm_campaign=cubepoints' ) . '</p>';
+			$screen->add_help_tab( array(
+				'id' => 'cubepoints_help_donate',
+				'title' => __( 'Donate', 'cubepoints' ),
+				'content' => $content
+			) );
+
+		}
+	} // end adminContextualHelp	
 
 	/**
 	 * Admin Page: Transactions

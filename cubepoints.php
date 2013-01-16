@@ -27,7 +27,7 @@ License:
 */
 
 require_once('classes/cubepoints.class.php');
-require_once('classes/cubepoints-module.php');
+require_once('classes/cubepoints-module.class.php');
 
 if ( function_exists( 'add_action' ) ) {
 	$cubepoints = new CubePoints;
