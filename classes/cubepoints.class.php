@@ -728,7 +728,7 @@ class CubePoints {
 	 * 
 	 * @return int|bool ID of the current logged in user. False if no user logged in.
 	 */
-	static function currentUserId() {
+	public static function currentUserId() {
 		if( is_user_logged_in() ){
 			global $current_user;
 			get_currentuserinfo();
@@ -745,7 +745,7 @@ class CubePoints {
 	 * @param int $timestamp Unix timestamp.
 	 * @return string Relative time difference between given timestamp and current time.
 	 */
-	static function relativeTime( $timestamp ) {
+	public static function relativeTime( $timestamp ) {
 		$diff = abs( time() - $timestamp );
 
 		if ($diff > 0) {
@@ -783,7 +783,7 @@ class CubePoints {
 	 *
 	 * @param string $cap Capability name.
 	 */
-	static function removeCapFromAllRoles( $cap ) {
+	public static function removeCapFromAllRoles( $cap ) {
 		global $wp_roles;
 		foreach( array_keys( $wp_roles->roles ) as $role ){
 			get_role( $role )->remove_cap( $cap );
