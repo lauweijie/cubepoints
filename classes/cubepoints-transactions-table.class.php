@@ -43,7 +43,7 @@ class CubePoints_Transactions_Table extends WP_List_Table {
     }
 
     function column_description($item) {
-		$description = apply_filters( "cubepoints_txn_desc_{$item->type}", '', $item );
+		$description = apply_filters( "cubepoints_txn_desc_{$item->type}", '', $item, 1 );
 		if( has_filter( "cubepoints_txn_desc_{$item->type}" ) === false || $description == '' ) {
 			$description = sprintf( '<i>%s</i>', __('no description', 'cubepoints') );
 		}
