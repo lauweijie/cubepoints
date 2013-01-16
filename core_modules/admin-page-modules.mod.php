@@ -13,7 +13,10 @@ class CubePointsAdminPageModules extends CubePointsModule {
 	public function main() {
 		add_filter( 'cubepoints_add_admin_submenu', array($this, 'adminPageModules_add') );
 	}
-	
+
+	/**
+	 * Filter to add admin menu
+	 */
 	public function adminPageModules_add( $submenus ) {
 		$submenus[] = array(
 			__('CubePoints', 'cubepoints') . ' &ndash; ' .  __('Modules', 'cubepoints'),
@@ -24,7 +27,10 @@ class CubePointsAdminPageModules extends CubePointsModule {
 		);
 		return $submenus;
 	}
-	
+
+	/**
+	 * HTML for the Settings page
+	 */
 	public function adminPageModules() {
 		?>
 		<div class="wrap">
