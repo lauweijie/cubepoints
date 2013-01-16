@@ -801,7 +801,7 @@ class CubePoints {
 	 */
 	public function addAdminMenu() {
 		add_menu_page(
-			__('CubePoints', 'cubepoints') . ' &ndash; ' .  __('Settings', 'cubepoints'),
+			__('CubePoints', 'cubepoints') . ' &ndash; ' .  __('Transactions', 'cubepoints'),
 			__('CubePoints', 'cubepoints'),
 			'update_core',
 			'cubepoints_transactions',
