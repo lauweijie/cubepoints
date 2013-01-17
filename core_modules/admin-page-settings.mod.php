@@ -12,6 +12,7 @@ class CubePointsAdminPageSettings extends CubePointsModule {
 
 	public function main() {
 		add_filter( 'cubepoints_add_admin_submenu', array($this, 'adminPageSettings_add') );
+		add_action( 'admin_init', array($this, 'admin_init') );
 	}
 
 	/**
@@ -28,6 +29,19 @@ class CubePointsAdminPageSettings extends CubePointsModule {
 		return $submenus;
 	}
 
+	public function admin_init() {
+		add_settings_section('cubepoints_general', __('General Settings', 'cubepoints'), array($this, 'settings_general'), 'cubepoints');
+		add_settings_field('cubepoints_points_prefix', 'Points Prefix', array($this, 'points_prefix_field'), 'cubepoints', 'cubepoints_general');
+	}
+
+	public function settings_general() {
+		echo '<p>Test: General Sect</p>';
+	}
+
+	public function points_prefix_field() {
+		echo 'pp field';
+	}
+
 	/**
 	 * HTML for the Settings page
 	 */
@@ -40,40 +54,10 @@ class CubePointsAdminPageSettings extends CubePointsModule {
 			</h2>
 			
 			<form name="cubepoints-settings" method="post" action="admin.php?page=cubepoints_settings">
-
-				<?php wp_nonce_field( 'cubepoints-settings' ); ?>
-
-				<h3><?php _e('Points Display', 'cubepoints'); ?></h3>
-
-				<table class="form-table"><tbody>
-					<tr>
-						<th><label for="cubepoints_prefix">Points Prefix</label></th>
-						<td><input name="cubepoints_prefix" id="cubepoints_prefix" type="text" value="<?php echo $this->cubepoints->getOption('prefix'); ?>" class="regular-text code"></td>
-					</tr>
-					<tr>
-						<th><label for="cubepoints_suffix">Points Suffix</label></th>
-						<td><input name="cubepoints_suffix" id="cubepoints_suffix" type="text" value="<?php echo $this->cubepoints->getOption('suffix'); ?>" class="regular-text code"></td>
-					</tr>
-					<tr>
-						<th><label for="cubepoints_display_example">Points Display Example</label></th>
-						<td><input name="cubepoints_display_example" id="cubepoints_display_example" type="text" value="<?php echo $this->cubepoints->getOption('prefix'); ?>150<?php echo $this->cubepoints->getOption('suffix'); ?>" class="regular-text code" readonly></td>
-					</tr>
-				</tbody></table>
-				
-				<?php do_action('cubepoints_settings_form'); ?>
-
+				<?php settings_fields('cubepoints'); ?>
+				<?php do_settings_sections('cubepoints'); ?>
+				<p class="submit"><input name="Submit" type="submit" class="button-primary" value="<?php esc_attr_e('Save Changes'); ?>" /></p>
 			</form>
-			
-			<script type="text/javascript">
-			function cubepointsUpdateDisplayExample(){
-				jQuery('#cubepoints_display_example').val( jQuery('#cubepoints_prefix').val() + '150' + jQuery('#cubepoints_suffix').val() );
-			}
-			jQuery(function() {
-				jQuery('#cubepoints_prefix').bind( 'keydown keyup change click mouseover mouseout', cubepointsUpdateDisplayExample );
-				jQuery('#cubepoints_suffix').bind( 'keydown keyup change click mouseover mouseout', cubepointsUpdateDisplayExample );
-				cubepointsUpdateDisplayExample();
-			});
-			</script>
 
 		</div>
 		<?php
