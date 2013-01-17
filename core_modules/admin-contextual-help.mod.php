@@ -26,6 +26,7 @@ class CubePointsAdminContextualHelp extends CubePointsModule {
 	 * Contextual help for admin pages
 	 */
 	public function adminContextualHelp($contextual_help, $screen_id, $screen) {
+		// @TODO: Update this with useful information
 		if( in_array($screen_id, $this->admin_pages) ) {
 			$content = '<p><strong>' . __( 'Getting started with CubePoints', 'cubepoints' ) . '</strong></p>';
 			$content .= '<p>' . sprintf( __( 'Getting started with CubePoints is easy! Once you\'ve activated the plugin, head over to the <a href="%s">Settings</a> page and make CubePoints work just the way you want.', 'cubepoints' ), 'admin.php?page=cubepoints_settings' ) . '</p>';
