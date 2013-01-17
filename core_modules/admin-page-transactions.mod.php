@@ -29,7 +29,7 @@ class CubePointsAdminPageTransactions extends CubePointsModule {
 	 * Runs when all admin pages are loaded
 	 */
 	public function adminMenusLoaded( $admin_pages ) {
-		$page = $admin_pages['cubepoints_transactions']['screen'];
+		$page = $admin_pages['cubepoints_transactions'];
 		add_action( "load-{$page}", array($this, 'adminPageTransactionsScreenOptions') );
 	}
 
@@ -63,6 +63,15 @@ class CubePointsAdminPageTransactions extends CubePointsModule {
 		<style type="text/css">
 			.wp-list-table.transactions td {
 				padding: 5px 8px;
+			}
+			.column-user {
+				width: 20%;
+			}
+			.column-points {
+				width: 10%;
+			}
+			.column-time {
+				width: 18%;
 			}
 		</style>
 		<?php
@@ -114,8 +123,8 @@ class CubePoints_Transactions_Table extends WP_List_Table {
     function get_columns() {
         $columns = array(
             'user' => __('User', 'cubepoints'),
-            'points' => __('Points', 'cubepoints'),
 			'description' => __('Description', 'cubepoints'),
+            'points' => __('Points', 'cubepoints'),
 			'time' => __('Time', 'cubepoints')
         );
         return $columns;
@@ -135,13 +144,14 @@ class CubePoints_Transactions_Table extends WP_List_Table {
     }
 
     function column_points($item) {
-		return $item->points;
+		global $cubepoints;
+		return $cubepoints->formatPoints($item->points);
     }
 
     function column_description($item) {
 		$description = apply_filters( "cubepoints_txn_desc_{$item->type}", '', $item, 1 );
 		if( has_filter( "cubepoints_txn_desc_{$item->type}" ) === false || $description == '' ) {
-			$description = sprintf( '<i>%s</i>', __('no description', 'cubepoints') );
+			$description = sprintf( '<span style="font-style: italic;" title="%s: %s">%s</span>', __('Transaction Type', 'cubepoints'), $item->type, __('no description', 'cubepoints') );
 		}
 		return $description;
     }
@@ -156,8 +166,8 @@ class CubePoints_Transactions_Table extends WP_List_Table {
     function get_sortable_columns() {
         $sortable_columns = array(
             'user' => array('uid', false),
-            'points' => array('points', false),
             'description' => array('type', false),
+            'points' => array('points', false),
             'time' => array('timestamp', false),
         );
         return $sortable_columns;
@@ -166,7 +176,7 @@ class CubePoints_Transactions_Table extends WP_List_Table {
     function prepare_items() {
         global $wpdb;
 		global $cubepoints;
-		
+
 		$cubepoints_table = $cubepoints->db('cubepoints');
 
 		$user = get_current_user_id();

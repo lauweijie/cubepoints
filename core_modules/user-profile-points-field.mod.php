@@ -19,9 +19,7 @@ class CubePointsUserProfilePointsField extends CubePointsModule {
 		add_action( 'edit_user_profile', array( $this, 'userProfilePoints' ) );
 		add_action( 'personal_options_update', array( $this, 'userProfilePointsUpdate' ) );
 		add_action( 'edit_user_profile_update', array( $this, 'userProfilePointsUpdate' ) );
-
-		// Adds filter for transaction log
-		add_filter( 'cubepoints_txn_desc_admin', array($this, 'txnDescAdmin'), 10, 3 );
+		$this->cubepoints->registerTransactionType( 'admin', __('Admin Adjustments', 'cubepoints'), array($this, 'txnDescAdmin') );
 	}
 
 	/**
@@ -51,7 +49,12 @@ class CubePointsUserProfilePointsField extends CubePointsModule {
 		if( ! $this->cubepoints->getOption( 'allow_negative_points' ) && $points < 0 )
 			$points = 0;
 
-		$this->cubepoints->updatePoints( 'admin', $user_id, $points, array( 'user', $this->currentUserId() ) );
+		$this->cubepoints->updatePoints(
+			'admin',
+			$user_id,
+			$points,
+			array( 'user', $this->currentUserId() )
+		);
 	}
 
 	/**

@@ -21,7 +21,7 @@ class CubePointsAdminPageSettings extends CubePointsModule {
 			'function' => array($this, 'adminPageSettings'),
 			'position' => 20
 		) );
-		add_filter( 'cubepoints_admin_settings_pages', array($this, 'add_settings_page') );
+		add_filter( 'cubepoints_admin_settings_pages', array($this, 'addSettingsPage') );
 		add_action( 'admin_init', array($this, 'admin_init') );
 		add_action( 'cubepoints_admin_menus_loaded', array($this, 'adminMenusLoaded') );
 	}
@@ -30,21 +30,21 @@ class CubePointsAdminPageSettings extends CubePointsModule {
 	 * Runs when all admin pages are loaded
 	 */
 	public function adminMenusLoaded( $admin_screens ) {
-		add_action( 'admin_print_styles-' . $admin_screens['cubepoints_settings'], array($this, 'admin_css') );
-		add_action( 'admin_print_scripts-' . $admin_screens['cubepoints_settings'], array($this, 'admin_js') );
+		add_action( 'admin_print_styles-' . $admin_screens['cubepoints_settings'], array($this, 'adminStyles') );
+		add_action( 'admin_print_scripts-' . $admin_screens['cubepoints_settings'], array($this, 'adminScripts') );
 	}
 
 	/**
 	 * Loads CSS for the settings admin page
 	 */
-	public function admin_css() {
+	public function adminStyles() {
 		wp_enqueue_style( 'cubepoints_admin_settings',  plugins_url( 'css/admin-settings.css', $this->cubepoints->plugin_file ) );
 	}
 
 	/**
 	 * Loads scripts for the settings admin page
 	 */
-	public function admin_js() {
+	public function adminScripts() {
 		wp_print_scripts( 'jquery-ui-tabs' );
 	}
 
@@ -52,19 +52,19 @@ class CubePointsAdminPageSettings extends CubePointsModule {
 	 * Hook triggered when user accesses the admin area
 	 */
 	public function admin_init() {
-		add_settings_section('points_display', __('Points Display Settings', 'cubepoints'), array($this, 'settings_points_display'), 'cubepoints_general');
+		add_settings_section('points_display', __('Points Display', 'cubepoints'), array($this, 'pointsDisplaySectionDescription'), 'cubepoints_general');
 
-		add_settings_field('cubepoints_points_prefix', 'Points Prefix', array($this, 'points_prefix_field'), 'cubepoints_general', 'points_display');
+		add_settings_field('cubepoints_points_prefix', __('Points Prefix', 'cubepoints'), array($this, 'pointsPrefixField'), 'cubepoints_general', 'points_display');
 		register_setting( 'cubepoints', 'cubepoints_points_prefix' );
 
-		add_settings_field('cubepoints_points_suffix', 'Points Suffix', array($this, 'points_suffix_field'), 'cubepoints_general', 'points_display');
+		add_settings_field('cubepoints_points_suffix', __('Points Suffix', 'cubepoints'), array($this, 'pointsSuffixField'), 'cubepoints_general', 'points_display');
 		register_setting( 'cubepoints', 'cubepoints_points_suffix' );
 	}
 
 	/**
 	 * Filter to add a settings page
 	 */
-	public function add_settings_page( $pages ) {
+	public function addSettingsPage( $pages ) {
 		$pages['general'] = 'General Settings';
 		$pages['points'] = 'Points Settings';
 		return $pages;
@@ -73,21 +73,21 @@ class CubePointsAdminPageSettings extends CubePointsModule {
 	/**
 	 * Description for the points display section
 	 */
-	public function settings_points_display() {
+	public function pointsDisplaySectionDescription() {
 		echo '<p>' . __('The points prefix and suffix will be prepended and appended to the point value when it is displayed to the users.', 'cubepoints') . '</p>';
 	}
 
 	/**
 	 * HTML form element for the points prefix field
 	 */
-	public function points_prefix_field() {
+	public function pointsPrefixField() {
 		echo "<input id='cubepoints_points_prefix' name='cubepoints_points_prefix' size='40' type='text' value='{$this->cubepoints->getOption('points_prefix')}' />";
 	}
 
 	/**
 	 * HTML form element for the points suffix field
 	 */
-	public function points_suffix_field() {
+	public function pointsSuffixField() {
 		echo "<input id='cubepoints_points_suffix' name='cubepoints_points_suffix' size='40' type='text' value='{$this->cubepoints->getOption('points_suffix')}' />";
 	}
 

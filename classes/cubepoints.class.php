@@ -8,6 +8,7 @@ class CubePoints {
 
 	private $loaded_modules = array();
 	public $plugin_file = '';
+	public $transaction_types = array();
 	private $admin_menus = array();
 
 	/*--------------------------------------------*
@@ -96,7 +97,6 @@ class CubePoints {
 		$this->addOption( 'points_prefix' , '$' );
 		$this->addOption( 'points_suffix' , '' );
 		$this->addOption( 'allow_negative_points' , false );
-		
 
 		// sets up default user capabilities for managing points
 		$this->removeCapFromAllRoles( 'manage_cubepoints' );
@@ -275,7 +275,7 @@ class CubePoints {
 	 */
 	public function alterPoints( $user_id, $points ) {
 		$this->setPoints( $user_id , $this->getPoints($user_id) + $points );
-	} // end addPoints
+	} // end alterPoints
 
 	/**
 	 * Adds the prefix and suffix to a given number of points
@@ -285,7 +285,7 @@ class CubePoints {
 	 */
 	public function formatPoints( $points ) {
 		if($points == 0) { $points = '0'; }
-		return $this->getOption('points_prefix') . $points . $this->getOption('points_suffix');
+		return ($points < 0 ? '&minus;' : '') . $this->getOption('points_prefix') . abs($points) . $this->getOption('points_suffix');
 	} //end formatPoints
 
 	/**
@@ -483,6 +483,22 @@ class CubePoints {
 		$args[2] = $args[2] - $this->getPoints( $args[1] );
 		return call_user_func_array( array($this, 'addPoints'), $args );
 	} // end updatePoints
+
+	/**
+	 * Registers a transaction type
+	 *
+	 * @param string $transaction_type Slug to identify the type of transaction.
+	 * @param string $transaction_name Name of the particular transaction type
+	 * @param callback $description_callback Optional. Callback for the function to be called when displaying transaction description.
+	 * @param int Optional. Priority of which the callback function is executed.
+	 * @return void
+	 */
+	public function registerTransactionType( $transaction_type, $transaction_name, $description_callback = null, $priority = 10 ) {
+		$this->transaction_types[$transaction_type] = $transaction_name;
+		if( $description_callback != null ) {
+			add_filter( "cubepoints_txn_desc_{$transaction_type}", $description_callback, $priority, 3 );
+		}
+	}
 
 	/*--------------------------------------------*
 	 * CubePoints Modules
@@ -833,7 +849,6 @@ class CubePoints {
 			'position' => $position
 		);
 	}
-	
 
 	/**
 	 * Hook to insert admin menus into WordPress
