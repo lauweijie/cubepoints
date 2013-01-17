@@ -31,15 +31,26 @@ class CubePointsAdminPageSettings extends CubePointsModule {
 
 	public function admin_init() {
 		add_settings_section('cubepoints_general', __('General Settings', 'cubepoints'), array($this, 'settings_general'), 'cubepoints');
+
 		add_settings_field('cubepoints_points_prefix', 'Points Prefix', array($this, 'points_prefix_field'), 'cubepoints', 'cubepoints_general');
-	}
+		register_setting( 'cubepoints', 'cubepoints_points_prefix' );
+
+		add_settings_field('cubepoints_points_suffix', 'Points Suffix', array($this, 'points_suffix_field'), 'cubepoints', 'cubepoints_general');
+		register_setting( 'cubepoints', 'cubepoints_points_suffix' );
+
+		add_settings_field('cubepoints_points_suffix', 'Points Suffix', array($this, 'points_suffix_field'), 'cubepoints', 'cubepoints_general');
+		}
 
 	public function settings_general() {
-		echo '<p>Test: General Sect</p>';
+		echo '<p>' . __('The points prefix and suffix will be prepended and appended to the point value when it is displayed to the users.', 'cubepoints') . '</p>';
 	}
 
 	public function points_prefix_field() {
-		echo 'pp field';
+		echo "<input id='cubepoints_points_prefix' name='cubepoints_points_prefix' size='40' type='text' value='{$this->cubepoints->getOption('points_prefix')}' />";
+	}
+
+	public function points_suffix_field() {
+		echo "<input id='cubepoints_points_suffix' name='cubepoints_points_suffix' size='40' type='text' value='{$this->cubepoints->getOption('points_suffix')}' />";
 	}
 
 	/**
@@ -53,7 +64,7 @@ class CubePointsAdminPageSettings extends CubePointsModule {
 				<?php _e('CubePoints', 'cubepoints'); ?> <?php _e('Settings', 'cubepoints'); ?>
 			</h2>
 			
-			<form name="cubepoints-settings" method="post" action="admin.php?page=cubepoints_settings">
+			<form name="cubepoints-settings" method="post" action="options.php">
 				<?php settings_fields('cubepoints'); ?>
 				<?php do_settings_sections('cubepoints'); ?>
 				<p class="submit"><input name="Submit" type="submit" class="button-primary" value="<?php esc_attr_e('Save Changes'); ?>" /></p>

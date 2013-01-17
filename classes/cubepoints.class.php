@@ -92,8 +92,8 @@ class CubePoints {
 		// adds default options
 		$this->updateOption( 'auth_key' , substr( md5(uniqid()) , 3 , 10 ) );
 		$this->updateOption( 'activated_modules' , array() );
-		$this->updateOption( 'prefix' , '$' );
-		$this->updateOption( 'suffix' , '' );
+		$this->updateOption( 'points_prefix' , '$' );
+		$this->updateOption( 'points_suffix' , '' );
 		$this->updateOption( 'allow_negative_points' , false );
 		
 
@@ -137,8 +137,8 @@ class CubePoints {
 		// removes plugin options
 		$this->deleteOption( 'auth_key' );
 		$this->deleteOption( 'activated_modules' );
-		$this->deleteOption( 'prefix' );
-		$this->deleteOption( 'suffix' );
+		$this->deleteOption( 'points_prefix' );
+		$this->deleteOption( 'points_suffix' );
 		$this->deleteOption( 'allow_negative_points' );
 
 		// removes the manage_cubepoints capability from all roles
@@ -270,7 +270,7 @@ class CubePoints {
 	 */
 	public function formatPoints( $points ) {
 		if($points == 0) { $points = '0'; }
-		return $this->getOption('prefix') . $points . $this->getOption('suffix');
+		return $this->getOption('points_prefix') . $points . $this->getOption('points_suffix');
 	} //end formatPoints
 
 	/**
