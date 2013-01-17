@@ -10,22 +10,17 @@ class CubePointsAdminPageModules extends CubePointsModule {
 		'_core' => true
 	);
 
-	public function main() {
-		add_filter( 'cubepoints_add_admin_submenu', array($this, 'adminPageModules_add') );
-	}
-
 	/**
-	 * Filter to add admin menu
+	 * Automatically triggered when module is active
 	 */
-	public function adminPageModules_add( $submenus ) {
-		$submenus[] = array(
-			__('CubePoints', 'cubepoints') . ' &ndash; ' .  __('Modules', 'cubepoints'),
-			__('Modules', 'cubepoints'),
-			'update_core',
-			'cubepoints_modules',
-			array($this, 'adminPageModules')
-		);
-		return $submenus;
+	public function main() {
+		$this->cubepoints->addAdminMenu( array(
+			'page_title' => __('CubePoints', 'cubepoints') . ' &ndash; ' .  __('Modules', 'cubepoints'),
+			'menu_title' => __('Modules', 'cubepoints'),
+			'menu_slug' => 'cubepoints_modules',
+			'function' => array($this, 'adminPageModules'),
+			'position' => 100
+		) );
 	}
 
 	/**

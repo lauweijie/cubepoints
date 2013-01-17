@@ -10,6 +10,9 @@ class CubePointsAdminPageSettingsPoints extends CubePointsModule {
 		'_core' => true
 	);
 
+	/**
+	 * Automatically triggered when module is active
+	 */
 	public function main() {
 		add_action( 'cubepoints_settings_form', array($this,'x') );
 	}

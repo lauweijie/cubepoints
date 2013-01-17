@@ -8,6 +8,7 @@ class CubePoints {
 
 	private $loaded_modules = array();
 	public $plugin_file = '';
+	private $admin_menus = array();
 
 	/*--------------------------------------------*
 	 * Constructor
@@ -37,10 +38,10 @@ class CubePoints {
 
 		// Add admin menus
 		if( function_exists('is_multisite') && is_multisite() ) {
-			add_action( 'network_admin_menu', array( $this, 'addAdminMenu' ) );
+			add_action( 'network_admin_menu', array( $this, 'insertAdminMenus' ) );
 		}
 		else {
-			add_action( 'admin_menu', array( $this, 'addAdminMenu' ) );
+			add_action( 'admin_menu', array( $this, 'insertAdminMenus' ) );
 		}
 
 		// Adds filters for saving screen options
@@ -90,11 +91,11 @@ class CubePoints {
 		}
 
 		// adds default options
-		$this->updateOption( 'auth_key' , substr( md5(uniqid()) , 3 , 10 ) );
-		$this->updateOption( 'activated_modules' , array() );
-		$this->updateOption( 'points_prefix' , '$' );
-		$this->updateOption( 'points_suffix' , '' );
-		$this->updateOption( 'allow_negative_points' , false );
+		$this->addOption( 'auth_key' , substr( md5(uniqid()) , 3 , 10 ) );
+		$this->addOption( 'activated_modules' , array() );
+		$this->addOption( 'points_prefix' , '$' );
+		$this->addOption( 'points_suffix' , '' );
+		$this->addOption( 'allow_negative_points' , false );
 		
 
 		// sets up default user capabilities for managing points
@@ -179,6 +180,20 @@ class CubePoints {
 		global $wpdb;
 		return $wpdb->base_prefix . $db;
 	} // end db
+
+	/**
+	 * Adds a named option with specified value.
+	 * 
+	 * @param string $option Name of the option to add.
+	 * @param mixed $new_value The value for this option name.
+	 * @return bool Returns the value of the inserted rows id.
+	 */
+	public function addOption( $option, $value ) {
+		// prefix options to prevent namespace conflicts
+		$option = 'cubepoints_' . $option;
+
+		return add_site_option( $option, $value );
+	} // end addOption
 
 	/**
 	 * Returns values for a named option.
@@ -796,22 +811,54 @@ class CubePoints {
 	/**
 	 * Adds admin menus
 	 *
+	 * @param array
 	 * @return void
 	 */
-	public function addAdminMenu() {
-		$admin_menu = apply_filters( 'cubepoints_add_admin_menu', false );
-		if( $admin_menu ) {
-			$admin_pages = array();
-			add_menu_page($admin_menu[0], __('CubePoints', 'cubepoints'), $admin_menu[2], $admin_menu[3], $admin_menu[4]);
-			$admin_pages[$admin_menu[3]] = add_submenu_page($admin_menu[3], $admin_menu[0], $admin_menu[1], $admin_menu[2], $admin_menu[3], $admin_menu[4]);
-			$admin_submenus = apply_filters( 'cubepoints_add_admin_submenu', array() );
-			if( is_array($admin_submenus) ) {
-				foreach( $admin_submenus as $admin_submenu ) {
-					$admin_pages[$admin_submenu[3]] = add_submenu_page($admin_menu[3], $admin_submenu[0], $admin_submenu[1], $admin_submenu[2], $admin_submenu[3], $admin_submenu[4]);
-				}
-			}
-			do_action('cubepoints_admin_menus_loaded', $admin_pages);
+	public function addAdminMenu( $args ) {
+		$defaults = array(
+			'page_title' => '',
+			'menu_title' => '',
+			'capability' => 'manage_options',
+			'menu_slug' => '',
+			'function' => null,
+			'position' => 10
+		);
+		extract( wp_parse_args( $args, $defaults ) );
+		$this->admin_menus[$menu_slug] = array(
+			'page_title' => $page_title,
+			'menu_title' => $menu_title,
+			'capability' => $capability,
+			'menu_slug' => $menu_slug,
+			'function' => $function,
+			'position' => $position
+		);
+	}
+	
+
+	/**
+	 * Hook to insert admin menus into WordPress
+	 *
+	 * @return void
+	 */
+	public function insertAdminMenus() {
+		$admin_menus_sort = array();
+		foreach($this->admin_menus as $key => $admin_menu) {
+			$admin_menus_sort[$key] = $admin_menu['position'];
 		}
-	} // end addAdminMenu
+		array_multisort($admin_menus_sort, $this->admin_menus);
+		
+		$toplevel_menu = null;
+		$admin_screens = array();
+		foreach($this->admin_menus as $key => $admin_menu) {
+			if($toplevel_menu == null) {
+				$toplevel_menu = $admin_menu['menu_slug'];
+				add_menu_page($admin_menu['page_title'], __('CubePoints', 'cubepoints'), $admin_menu['capability'], $admin_menu['menu_slug'], $admin_menu['function']);
+			}
+			$screen = add_submenu_page($toplevel_menu, $admin_menu['page_title'], $admin_menu['menu_title'], $admin_menu['capability'], $admin_menu['menu_slug'], $admin_menu['function']);
+			$admin_screens[$admin_menu['menu_slug']] = $screen;
+			$this->admin_menus[$key]['screen'] = $screen;
+		}
+		do_action('cubepoints_admin_menus_loaded', $admin_screens);
+	} // end insertAdminMenus
 
 } // end CubePoints class

@@ -10,6 +10,9 @@ class CubePointsUserProfilePointsField extends CubePointsModule {
 		'_core' => true
 	);
 
+	/**
+	 * Automatically triggered when module is active
+	 */
 	public function main() {
 		// Adds points field to user profile
 		add_action( 'show_user_profile', array( $this, 'userProfilePoints' ) );
@@ -23,9 +26,6 @@ class CubePointsUserProfilePointsField extends CubePointsModule {
 
 	/**
 	 * Adds HTML form to the user profile page
-	 *
-	 * @param object $user WP_User object
-	 * @return void
 	 */
 	public function userProfilePoints( $user ) {
 		echo '<h3>' . __('Points', 'cubepoints') . '</h3>';
@@ -41,9 +41,6 @@ class CubePointsUserProfilePointsField extends CubePointsModule {
 
 	/**
 	 * Process and updates points from the user profile page
-	 *
-	 * @param int $user_id ID of the user of which points are updated
-	 * @return void
 	 */
 	public function userProfilePointsUpdate( $user_id ) {
 		if ( ! current_user_can( 'manage_cubepoints', $user_id ) )
@@ -59,8 +56,6 @@ class CubePointsUserProfilePointsField extends CubePointsModule {
 
 	/**
 	 * Transaction Description: admin
-	 *
-	 * @return string Description of transaction
 	 */
 	public function txnDescAdmin( $description, $details, $admin_display ) {
 		$user = get_userdata( $this->cubepoints->getTransactionMeta($details->id, 'user') );

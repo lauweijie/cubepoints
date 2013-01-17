@@ -10,8 +10,17 @@ class CubePointsAdminPageTransactions extends CubePointsModule {
 		'_core' => true
 	);
 
+	/**
+	 * Automatically triggered when module is active
+	 */
 	public function main() {
-		add_filter( 'cubepoints_add_admin_menu', array($this, 'adminPageTransactions_add') );
+		$this->cubepoints->addAdminMenu( array(
+			'page_title' => __('CubePoints', 'cubepoints') . ' &ndash; ' .  __('Transactions', 'cubepoints'),
+			'menu_title' => __('Transactions', 'cubepoints'),
+			'menu_slug' => 'cubepoints_transactions',
+			'function' => array($this, 'adminPageTransactions'),
+			'position' => 1
+		) );
 		add_filter( 'set-screen-option', array($this, 'adminPageTransactionsScreenOptionsSet'), 10, 3 );
 		add_action( 'cubepoints_admin_menus_loaded', array($this, 'adminMenusLoaded') );
 	}
@@ -20,21 +29,8 @@ class CubePointsAdminPageTransactions extends CubePointsModule {
 	 * Runs when all admin pages are loaded
 	 */
 	public function adminMenusLoaded( $admin_pages ) {
-		$page = $admin_pages['cubepoints_transactions'];
+		$page = $admin_pages['cubepoints_transactions']['screen'];
 		add_action( "load-{$page}", array($this, 'adminPageTransactionsScreenOptions') );
-	}
-
-	/**
-	 * Filter to add admin menu
-	 */
-	public function adminPageTransactions_add() {
-		return array(
-			__('CubePoints', 'cubepoints') . ' &ndash; ' .  __('Transactions', 'cubepoints'),
-			__('Transactions', 'cubepoints'),
-			'update_core',
-			'cubepoints_transactions',
-			array($this, 'adminPageTransactions')
-		);
 	}
 
 	/**

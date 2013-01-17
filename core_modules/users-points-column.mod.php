@@ -10,6 +10,9 @@ class CubePointsUsersPointsColumn extends CubePointsModule {
 		'_core' => true
 	);
 
+	/**
+	 * Automatically triggered when module is active
+	 */
 	public function main() {
 		// Add points column to the users table
 		add_action( 'manage_users_custom_column',  array( $this, 'manageUsersCustomColumn' ), 10, 3 );
