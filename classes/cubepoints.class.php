@@ -848,7 +848,7 @@ class CubePoints {
 			'function' => $function,
 			'position' => $position
 		);
-	}
+	} // end addAdminMenu
 
 	/**
 	 * Hook to insert admin menus into WordPress
