@@ -10,7 +10,7 @@ class Blah extends CubePointsModule {
 		'author_uri' => 'http://blah.sg',
 		'description' => 'Blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah.',
 		'settings_link' => 'admin.php?page=cubepoints_settings#blah',
-		'_core' => true
+		'_core' => false
 	);
 
 	public function main() {

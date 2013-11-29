@@ -35,7 +35,9 @@ class CubePoints {
 		// Handles plugin activation, deactivation and uninstall
 		register_activation_hook( $this->plugin_file, array( $this, 'activate' ) );
 		register_deactivation_hook( $this->plugin_file, array( $this, 'deactivate' ) );
-		register_uninstall_hook( $this->plugin_file, array( $this, 'uninstall' ) );
+		
+		// @TODO fix uninstall hook
+		// register_uninstall_hook( $this->plugin_file, array( __class__, 'uninstall' ) );
 
 		// Add admin menus
 		if( function_exists('is_multisite') && is_multisite() ) {
@@ -99,7 +101,6 @@ class CubePoints {
 		$this->addOption( 'allow_negative_points' , false );
 
 		// sets up default user capabilities for managing points
-		$this->removeCapFromAllRoles( 'manage_cubepoints' );
 		if( ! $network_wide ){
 			$role = get_role( 'administrator' );
 			if( $role != null )
@@ -117,7 +118,7 @@ class CubePoints {
 	 * @params bool $network_wide True if WPMU superadmin uses "Network Activate" action, false if WPMU is disabled or plugin is activated on an individual blog.
 	 */
 	public function deactivate( $network_wide ) {
-		// TODO define deactivation functionality here		
+		// @TODO define deactivation functionality here	
 	} // end deactivate
 
 	/**
@@ -148,6 +149,9 @@ class CubePoints {
 		// removes version data
 		$this->deleteOption( 'version' );
 		$this->deleteOption( 'network_wide_install' );
+
+		// clear capabilities
+		$this->removeCapFromAllRoles( 'manage_cubepoints' );
 	} // end uninstall
 
 	/**
@@ -546,7 +550,7 @@ class CubePoints {
 		}
 		foreach( $this->availableModules() as $module ) {
 			$module_vars = get_class_vars( $module );
-			if($module_vars['module']['_core'] && ! $this->moduleActivated($module)) {
+			if(isset($module_vars['module']['_core']) && $module_vars['module']['_core'] && ! $this->moduleActivated($module)) {
 				$this->activateModule($module);
 			}
 		}
@@ -670,7 +674,7 @@ class CubePoints {
 	 * @return bool True if module is activated. False if otherwise.
 	 */
 	public function moduleActivated( $module ) {
-		return in_array( $module, $this->getOption('activated_modules') );
+		return in_array( $module, $this->getOption('activated_modules', array()) );
 	} // end moduleActivated
 
 	/**
@@ -686,7 +690,7 @@ class CubePoints {
 		if( ! $this->isModuleValid( $module ) )
 			return false;
 
-		$activatedModules = $this->getOption('activated_modules');
+		$activatedModules = $this->getOption('activated_modules', array());
 		$activatedModules[] = $module;
 		$this->updateOption('activated_modules', $activatedModules);
 		
@@ -727,7 +731,7 @@ class CubePoints {
 	 * @return void
 	 */
 	public function moduleActionHook() {
-		if( ! is_admin() || $_GET['page'] != 'cubepoints_modules' || empty( $_GET['action'] ) )
+		if( ! is_admin() || ( ! isset($_GET['page']) || $_GET['page'] != 'cubepoints_modules' ) || empty( $_GET['action'] ) )
 			return;
 
 		$redirUri = remove_query_arg(
