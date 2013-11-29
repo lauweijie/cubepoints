@@ -35,21 +35,21 @@ class CubePointsAdminPageModules extends CubePointsModule {
 				<a href="http://cubepoints.com/forums/forum/modules-releases/?utm_source=plugin&utm_medium=more_modules&utm_campaign=cubepoints" class="add-new-h2"><?php _e('Get More Modules', 'cubepoints'); ?></a>
 			</h2>
 
-			<?php if( $_GET['activate'] == 'true' ) : ?>
+			<?php if( isset($_GET['activate']) && $_GET['activate'] == 'true' ) : ?>
 				<div id="message" class="updated"><p><?php _e( 'Module', 'cubepoints' ); ?> <strong><?php _e( 'activated', 'cubepoints' ); ?></strong>.</p></div>
-			<?php elseif( $_GET['deactivate'] == 'true' ) : ?>
+			<?php elseif( isset($_GET['deactivate']) && $_GET['deactivate'] == 'true' ) : ?>
 				<div id="message" class="updated"><p><?php _e( 'Module', 'cubepoints' ); ?> <strong><?php _e( 'deactivated', 'cubepoints' ); ?></strong>.</p></div>
 			<?php endif; ?>
 
 			<?php
-				$currUri = remove_query_arg( array('_wpnonce', 'action', 'module', 'activate', 'deactivate'), $_SERVER[REQUEST_URI] );
+				$currUri = remove_query_arg( array('_wpnonce', 'action', 'module', 'activate', 'deactivate'), $_SERVER['REQUEST_URI'] );
 				$modules = $this->cubepoints->availableModules();
 				$activeModules = array();
 				$inactiveModules = array();
 				$allModules = array();
 				foreach( $modules as $module ) {
 					$moduleDetails = $this->cubepoints->moduleDetails( $module );
-					if( $moduleDetails['_core'] ) {
+					if( isset($moduleDetails['_core']) && $moduleDetails['_core'] ) {
 						continue;
 					}
 					if( $this->cubepoints->moduleActivated( $module ) ) {
@@ -59,7 +59,7 @@ class CubePointsAdminPageModules extends CubePointsModule {
 					}
 					$allModules[] = $module;
 				}
-				$moduleStatus = $_GET['module_status'];
+				$moduleStatus = isset($_GET['module_status']) ? $_GET['module_status'] : false;
 				if( empty($moduleStatus) || ($moduleStatus == 'active' && count($activeModules) == 0) || ($moduleStatus == 'inactive' && count($inactiveModules) == 0) ) {
 					$moduleStatus = 'all';
 				}
