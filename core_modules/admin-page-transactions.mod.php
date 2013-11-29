@@ -137,7 +137,7 @@ class CubePoints_Transactions_Table extends WP_List_Table {
     function column_user($item) {
 		$user = get_userdata( $item->uid );
 		if( $user ) {
-			return sprintf( '<a href="user-edit.php?user_id=%d">%s</a>', $user->id, $user->user_login );
+			return sprintf( '<a href="user-edit.php?user_id=%d">%s</a>', $user->ID, $user->user_login );
 		} else {
 			return sprintf( '<i>%s #%d</i>', __('user', 'cubepoints'), $item->uid );
 		}
