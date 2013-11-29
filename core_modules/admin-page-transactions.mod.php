@@ -224,6 +224,9 @@ class CubePoints_Transactions_Table extends WP_List_Table {
 		}
 
 		$limit_start = ($current_page - 1) * $per_page;
+		if( $limit_start < 0 ) {
+			$limit_start = 0;
+		}
 
         $this->items = $wpdb->get_results( "SELECT *, UNIX_TIMESTAMP(timestamp) as unix_timestamp FROM {$cubepoints_table} {$filter} ORDER BY {$orderby} {$order} LIMIT {$limit_start}, {$per_page}" );
 
