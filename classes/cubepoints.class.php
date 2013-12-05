@@ -504,6 +504,45 @@ class CubePoints {
 		}
 	}
 
+	/**
+	 * Replace standard shortcodes with actual values
+	 *
+	 * @param string $text Text to be displayed
+	 * @return string Text with shortcodes replaced with actual values
+	 */
+	public function formatText( $text ) {
+		$user_id = $this->currentUserId();
+		$user = $user_id ? get_user_by('id', $user_id) : false;
+		$shortcodes = array(
+			// number of points (with prefix and suffix)
+			'%points%' => $this->displayPoints( null , false , true ),
+			// number of points (without prefix and suffix)
+			'%npoints%' => $this->displayPoints( null , false , false ),
+			// display name of logged in user
+			'%name%' => $user ? $user->display_name : '',
+			// display name of logged in user
+			'%firstname%' => $user ? $user->first_name : '',
+			// display name of logged in user
+			'%lastname%' => $user ? $user->last_name : '',
+			// login id of logged in user
+			'%userid%' => $user ? $user->user_login : '',
+			// md5 hash of logged in user's email address
+			'%emailhash%' => $user ? md5($user->user_email) : ''
+		);
+		$shortcodes = apply_filters('cubepoints_formatText_shortcodes', $shortcodes);
+		if(is_user_logged_in()) {
+			$text = preg_replace('/\[logged\-in\](.+?)\[\/logged\-in\]/is', '$1', $text);
+			$text = preg_replace('/\[logged\-out\](.+?)\[\/logged\-out\]/is', '', $text);
+		} else {
+			$text = preg_replace('/\[logged\-in\](.+?)\[\/logged\-in\]/is', '', $text);
+			$text = preg_replace('/\[logged\-out\](.+?)\[\/logged\-out\]/is', '$1', $text);
+		}
+		//$text = preg_replace('/\[logged\-out\](.*?)b/is', 'x', $text);
+		$text = str_replace(array_keys($shortcodes), array_values($shortcodes), $text);
+		$text = apply_filters('cubepoints_formatText_text', $text);
+		return $text;
+	}
+
 	/*--------------------------------------------*
 	 * CubePoints Modules
 	 *--------------------------------------------*/
