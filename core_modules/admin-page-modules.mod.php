@@ -32,7 +32,7 @@ class CubePointsAdminPageModules extends CubePointsModule {
 			<div id="icon-plugins" class="icon32"></div>
 			<h2>
 				<?php _e('CubePoints', 'cubepoints'); ?> <?php _e('Modules', 'cubepoints'); ?>
-				<a href="http://cubepoints.com/forums/forum/modules-releases/?utm_source=plugin&utm_medium=more_modules&utm_campaign=cubepoints" class="add-new-h2"><?php _e('Get More Modules', 'cubepoints'); ?></a>
+				<a href="<?php echo CubePoints::$URL_CP_MODULES; ?>" class="add-new-h2"><?php _e('Get More Modules', 'cubepoints'); ?></a>
 			</h2>
 
 			<?php if( isset($_GET['activate']) && $_GET['activate'] == 'true' ) : ?>

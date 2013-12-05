@@ -3,6 +3,14 @@
 class CubePoints {
 
 	/*--------------------------------------------*
+	 * Constants
+	 *--------------------------------------------*/
+
+	const VERSION = '4.0-dev';
+	static $URL_CP_MODULES = 'http://cubepoints.com/modules/';
+	static $URL_CP_DONATE = 'http://cubepoints.com/donate/';
+
+	/*--------------------------------------------*
 	 * Properties
 	 *--------------------------------------------*/
 

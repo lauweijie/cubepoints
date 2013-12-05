@@ -40,7 +40,7 @@ class CubePointsAdminContextualHelp extends CubePointsModule {
 			) );
 
 			$content = '<p><strong>' . __( 'Support CubePoints', 'cubepoints' ) . '</strong></p>';
-			$content .= '<p>' . sprintf( __( 'Love the way CubePoints work? Support CubePoints by making a small <a href="%s" target="_blank">donation</a>!', 'cubepoints' ), 'http://cubepoints.com/donate/?utm_source=plugin&utm_medium=contextual_help&utm_campaign=cubepoints' ) . '</p>';
+			$content .= '<p>' . sprintf( __( 'Love the way CubePoints work? Support CubePoints by making a small <a href="%s" target="_blank">donation</a>!', 'cubepoints' ), CubePoints::$URL_CP_DONATE) . '</p>';
 			$screen->add_help_tab( array(
 				'id' => 'cubepoints_help_donate',
 				'title' => __( 'Donate', 'cubepoints' ),
