@@ -198,7 +198,7 @@ class CubePoints_Transactions_Table extends WP_List_Table {
 
 		if( !empty($_REQUEST['s']) ) {
 			$filter_user = get_user_by('login', $_REQUEST['s']);
-				$filter = "WHERE `uid` = {$filter_user->ID}";
+				$filter = "AND `uid` = {$filter_user->ID}";
 		}
 
 		$orderby_allowed = array('id', 'uid', 'points', 'type', 'timestamp');
@@ -216,7 +216,9 @@ class CubePoints_Transactions_Table extends WP_List_Table {
 			$order = $_REQUEST['order'];
 		}
 
-        $total_items = $wpdb->get_var( "SELECT COUNT(*) FROM {$cubepoints_table} {$filter}" );
+		apply_filters('cubepoints_transactions_query_filter', $filter);
+
+        $total_items = $wpdb->get_var( "SELECT COUNT(*) FROM {$cubepoints_table} WHERE 1=1 {$filter}" );
 		$total_pages = ceil( $total_items / $per_page );
 
 		if( $current_page > $total_pages ) {
