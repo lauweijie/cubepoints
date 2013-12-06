@@ -121,10 +121,11 @@ class CubePoints_Transactions_Table extends WP_List_Table {
     }
 
     function get_columns() {
+    	global $cubepoints;
         $columns = array(
             'user' => __('User', 'cubepoints'),
 			'description' => __('Description', 'cubepoints'),
-            'points' => __('Points', 'cubepoints'),
+            'points' => $cubepoints->getOption('points_name'),
 			'time' => __('Time', 'cubepoints')
         );
         return $columns;

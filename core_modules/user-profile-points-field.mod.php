@@ -26,10 +26,10 @@ class CubePointsUserProfilePointsField extends CubePointsModule {
 	 * Adds HTML form to the user profile page
 	 */
 	public function userProfilePoints( $user ) {
-		echo '<h3>' . __('Points', 'cubepoints') . '</h3>';
+		echo '<h3>' . $this->cubepoints->getOption('points_name') . '</h3>';
 		echo '<table class="form-table">';
 		echo '<tr>';
-		echo '<th><label for="cubepoints_points">' . __('Number of Points', 'cubepoints') . '</label></th>';
+		echo '<th><label for="cubepoints_points">' . __('Amount', 'cubepoints') . '</label></th>';
 		echo '<td>';
 		echo '<input type="text" name="cubepoints_points" id="cubepoints_points" value="' . $this->cubepoints->getPoints( $user->ID ) . '" class="regular-text"' . (current_user_can('manage_cubepoints') ? '' : ' readonly="readonly"') . ' />';
 		echo '</td>';
@@ -63,7 +63,7 @@ class CubePointsUserProfilePointsField extends CubePointsModule {
 	public function txnDescAdmin( $description, $details, $admin_display ) {
 		$user = get_userdata( $this->cubepoints->getTransactionMeta($details->id, 'user') );
 		if( $user && $admin_display ) {
-			return sprintf( __('Points adjustment by <a href="user-edit.php?user_id=%d">%s</a>', 'cubepoints'), $user->ID, $user->user_login );
+			return sprintf( __('Adjusted by <a href="user-edit.php?user_id=%d">%s</a>', 'cubepoints'), $user->ID, $user->user_login );
 		} else {
 			return __('Points adjustment', 'cubepoints');
 		}

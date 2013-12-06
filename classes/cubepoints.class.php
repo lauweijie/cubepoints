@@ -104,6 +104,7 @@ class CubePoints {
 		// adds default options
 		$this->addOption( 'auth_key' , substr( md5(uniqid()) , 3 , 10 ) );
 		$this->addOption( 'activated_modules' , array() );
+		$this->addOption( 'points_name' , __('Points', 'cubepoints') );
 		$this->addOption( 'points_prefix' , '$' );
 		$this->addOption( 'points_suffix' , '' );
 		$this->addOption( 'allow_negative_points' , false );

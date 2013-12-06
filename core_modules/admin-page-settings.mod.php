@@ -54,6 +54,9 @@ class CubePointsAdminPageSettings extends CubePointsModule {
 	public function admin_init() {
 		add_settings_section('points_display', __('Points Display', 'cubepoints'), array($this, 'pointsDisplaySectionDescription'), 'cubepoints_general');
 
+		add_settings_field('cubepoints_points_name', __('Name of Currency', 'cubepoints'), array($this, 'pointsNameField'), 'cubepoints_general', 'points_display');
+		register_setting( 'cubepoints', 'cubepoints_points_name', array($this, 'cubepoints_points_name_sanitize') );
+
 		add_settings_field('cubepoints_points_prefix', __('Points Prefix', 'cubepoints'), array($this, 'pointsPrefixField'), 'cubepoints_general', 'points_display');
 		register_setting( 'cubepoints', 'cubepoints_points_prefix' );
 
@@ -78,6 +81,13 @@ class CubePointsAdminPageSettings extends CubePointsModule {
 	}
 
 	/**
+	 * HTML form element for the points name field
+	 */
+	public function pointsNameField() {
+		echo "<input id='cubepoints_points_name' name='cubepoints_points_name' size='40' type='text' value='{$this->cubepoints->getOption('points_name')}' />";
+	}
+
+	/**
 	 * HTML form element for the points prefix field
 	 */
 	public function pointsPrefixField() {
@@ -89,6 +99,17 @@ class CubePointsAdminPageSettings extends CubePointsModule {
 	 */
 	public function pointsSuffixField() {
 		echo "<input id='cubepoints_points_suffix' name='cubepoints_points_suffix' size='40' type='text' value='{$this->cubepoints->getOption('points_suffix')}' />";
+	}
+
+	/**
+	 * Callback function that sanitizes the 
+	 */
+	public function cubepoints_points_name_sanitize( $val ) {
+		$val = wp_strip_all_tags($val);
+		if($val == '') {
+			$val = __('Points', 'cubepoints');
+		}
+		return $val;
 	}
 
 	/**

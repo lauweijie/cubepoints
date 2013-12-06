@@ -26,7 +26,7 @@ class CubePointsUsersPointsColumn extends CubePointsModule {
 	 * Register the points column
 	 */
 	public function manageUsersColumns( $columns ) {
-		$columns['cubepoints'] = __('Points', 'cubepoints');
+		$columns['cubepoints'] = $this->cubepoints->getOption('points_name');
 		return $columns;
 	}
 
