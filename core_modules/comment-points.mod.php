@@ -30,10 +30,10 @@ class CubePointsCommentPoints extends CubePointsModule {
 	 * Triggers when a comment is posted
 	 */
 	public function newComment( $comment_id, $status ) {
-        $comment = get_comment( $comment_id );
-        if($status == 1){
+		$comment = get_comment( $comment_id );
+		if($status == 1){
 			$this->cubepoints->addPoints( 'comment', $this->cubepoints->currentUserId(), $this->cubepoints->getOption('comment_points'), array('comment_id', $comment_id) );
-        }
+		}
 	}
 
 	/**
@@ -41,7 +41,6 @@ class CubePointsCommentPoints extends CubePointsModule {
 	 */
 	public function admin_init() {
 		add_settings_section('comments', __('Comments', 'cubepoints'), array($this, 'commentsSectionDescription'), 'cubepoints_points');
-
 		add_settings_field('cubepoints_comment_points', __('Points Per Comment', 'cubepoints'), array($this, 'commentPointsField'), 'cubepoints_points', 'comments');
 		register_setting( 'cubepoints', 'cubepoints_comment_points', 'intval' );
 	}
