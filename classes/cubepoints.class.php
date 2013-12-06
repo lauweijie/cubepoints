@@ -360,7 +360,7 @@ class CubePoints {
 				array(
 					'txn_id' => $transaction_id,
 					'meta_key' => $meta_key,
-					'meta_value' => serialize($meta_value)
+					'meta_value' => $meta_value
 				),
 				array( '%d', '%s', '%s' )
 			);
