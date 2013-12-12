@@ -791,7 +791,7 @@ class CubePoints {
 
 		$redirUri = remove_query_arg(
 						array( '_wpnonce', 'action', 'module', 'activate', 'deactivate' ),
-						$_SERVER[REQUEST_URI]
+						$_SERVER['REQUEST_URI']
 					);
 
 		if( $_GET['action'] == 'activate_module' && ! empty( $_GET['module'] ) && wp_verify_nonce( $_GET['_wpnonce'], 'activate_module_' . $_GET['module'] ) ) {
