@@ -18,6 +18,7 @@ class CubePoints {
 	public $plugin_file = '';
 	public $transaction_types = array();
 	private $admin_menus = array();
+	private $ext_modules_dir = '';
 
 	/*--------------------------------------------*
 	 * Constructor
@@ -31,6 +32,10 @@ class CubePoints {
 		// Set plugin file
 		$this->plugin_file = dirname( dirname( __FILE__ ) ) . DIRECTORY_SEPARATOR . 'cubepoints.php';
 
+		// Set external modules directory
+		$wp_upload_dir = wp_upload_dir();
+		$this->ext_modules_dir = $wp_upload_dir['basedir'] . '/cubepoints/modules';
+		
 		// Load modules
 		$this->_loadModules();
 
@@ -617,7 +622,9 @@ class CubePoints {
 			glob( dirname($this->plugin_file) . '/modules/*.mod.php' ),
 			glob( dirname($this->plugin_file) . '/modules/*/*.mod.php' ),
 			glob( dirname($this->plugin_file) . '/core_modules/*.mod.php' ),
-			glob( dirname($this->plugin_file) . '/core_modules/*/*.mod.php' )
+			glob( dirname($this->plugin_file) . '/core_modules/*/*.mod.php' ),
+			glob( $this->ext_modules_dir . '/*.mod.php' ),
+			glob( $this->ext_modules_dir . '/*/*.mod.php' )
 		);
 		foreach ( $modules as $module ) {
 			require_once( $module );
