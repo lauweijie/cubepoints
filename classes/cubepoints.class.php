@@ -33,8 +33,7 @@ class CubePoints {
 		$this->plugin_file = dirname( dirname( __FILE__ ) ) . DIRECTORY_SEPARATOR . 'cubepoints.php';
 
 		// Set external modules directory
-		$wp_upload_dir = wp_upload_dir();
-		$this->ext_modules_dir = $wp_upload_dir['basedir'] . '/cubepoints/modules';
+		$this->ext_modules_dir = ABSPATH . 'wp-content/cubepoints';
 		
 		// Load modules after plugins loaded
 		add_action( 'plugins_loaded', array( $this, 'loadModules' ) );
