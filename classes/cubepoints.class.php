@@ -36,8 +36,8 @@ class CubePoints {
 		$wp_upload_dir = wp_upload_dir();
 		$this->ext_modules_dir = $wp_upload_dir['basedir'] . '/cubepoints/modules';
 		
-		// Load modules
-		$this->_loadModules();
+		// Load modules after plugins loaded
+		add_action( 'plugins_loaded', array( $this, 'loadModules' ) );
 
 		// Handles activation and deactivation of modules
 		add_action( 'init', array( $this, 'moduleActionHook' ) );
@@ -589,11 +589,9 @@ class CubePoints {
 	/**
 	 * Loads modules and runs activated modules
 	 *
-	 * @access private
-	 *
 	 * @return void
 	 */
-	private function _loadModules() {
+	public function loadModules() {
 		do_action( 'cubepoints_pre_load_modules' );
 		$this->_includeModules();
 		do_action( 'cubepoints_modules' );
@@ -608,7 +606,7 @@ class CubePoints {
 			}
 		}
 		do_action( 'cubepoints_modules_loaded' );
-	} // end _loadModules
+	} // end loadModules
 
 	/**
 	 * Includes all module files in the modules directory
@@ -748,13 +746,13 @@ class CubePoints {
 		$activatedModules = $this->getOption('activated_modules', array());
 		$activatedModules[] = $module;
 		$this->updateOption('activated_modules', $activatedModules);
-		
-		$this->_loadModule($module);
 
 		if( method_exists( $this->module($module), 'activate' ) ) {
 			$this->module($module)->activate();
 			do_action( 'cubepoints_module_activate', $module );
 		}
+
+		$this->_loadModule($module);
 
 		return true;
 	} // end activateModule
