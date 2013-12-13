@@ -32,7 +32,7 @@ class CubePointsAdminContextualHelp extends CubePointsModule {
 		// @TODO: Update this with useful information
 		if( in_array($screen_id, $this->admin_screens) ) {
 			$content = '<p><strong>' . __( 'Getting started with CubePoints', 'cubepoints' ) . '</strong></p>';
-			$content .= '<p>' . sprintf( __( 'Getting started with CubePoints is easy! Once you\'ve activated the plugin, head over to the <a href="%s">Settings</a> page and make CubePoints work just the way you want.', 'cubepoints' ), 'admin.php?page=cubepoints_settings' ) . '</p>';
+			$content .= '<p>' . sprintf( __( 'Getting started with CubePoints is easy! Once you\'ve activated the plugin, head over to <a href="%s">Settings</a> and make CubePoints work just the way you want.', 'cubepoints' ), 'admin.php?page=cubepoints_settings' ) . '</p>';
 			$screen->add_help_tab( array(
 				'id' => 'cubepoints_help_getting_started',
 				'title' => __( 'Getting Started', 'cubepoints' ),
@@ -44,6 +44,14 @@ class CubePointsAdminContextualHelp extends CubePointsModule {
 			$screen->add_help_tab( array(
 				'id' => 'cubepoints_help_donate',
 				'title' => __( 'Donate', 'cubepoints' ),
+				'content' => $content
+			) );
+
+			$content = '<p><strong>' . __( 'Support', 'cubepoints' ) . '</strong></p>';
+			$content .= '<p>' . sprintf( __( 'For full documentation of functions and APIs, read the <a href="%s" target="_blank">Documentations</a> or visit the <a href="%s" target="_blank">CubePoints Forum</a>.', 'cubepoints' ), CubePoints::$URL_CP_DOCS, CubePoints::$URL_CP_FORUM) . '</p>';
+			$screen->add_help_tab( array(
+				'id' => 'cubepoints_help_docs',
+				'title' => __( 'Support', 'cubepoints' ),
 				'content' => $content
 			) );
 		}
