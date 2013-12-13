@@ -550,7 +550,6 @@ class CubePoints {
 			$text = preg_replace('/\[logged\-in\](.+?)\[\/logged\-in\]/is', '', $text);
 			$text = preg_replace('/\[logged\-out\](.+?)\[\/logged\-out\]/is', '$1', $text);
 		}
-		//$text = preg_replace('/\[logged\-out\](.*?)b/is', 'x', $text);
 		$text = str_replace(array_keys($shortcodes), array_values($shortcodes), $text);
 		$text = apply_filters('cubepoints_formatText_text', $text);
 		return $text;
