@@ -126,8 +126,8 @@ class CubePointsAdminPageModules extends CubePointsModule {
 											<span class="activate"><a href="<?php echo wp_nonce_url( add_query_arg( array( 'action' => 'activate_module', 'module' => $module ) ), 'activate_module_' . $module ); ?>" title="<?php _e('Activate this module', 'cubepoints'); ?>" class="edit"><?php _e('Activate', 'cubepoints'); ?></a></span>
 										<?php else : ?>
 											<span class="deactivate"><a href="<?php echo wp_nonce_url( add_query_arg( array( 'action' => 'deactivate_module', 'module' => $module ) ), 'deactivate_module_' . $module ); ?>" title="<?php _e('Deactivate this module', 'cubepoints'); ?>" class="edit"><?php _e('Deactivate', 'cubepoints'); ?></a></span>
-											<?php if( ! empty($moduleDetails['settings_link']) ): ?>
-												| <a href="<?php echo $moduleDetails['settings_link']; ?>">Settings</a>
+											<?php if( method_exists($this->cubepoints->module($module), 'settings_link') ): ?>
+												| <a href="<?php echo $this->cubepoints->module($module)->settings_link(); ?>">Settings</a>
 											<?php endif; ?>
 										<?php endif; ?>
 									</div>
