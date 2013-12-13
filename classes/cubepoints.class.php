@@ -654,9 +654,10 @@ class CubePoints {
 	 * @access private
 	 *
 	 * @param string $module Name of module.
+	 * @param bool Attempts to run module activation method if true.
 	 * @return bool True if module loaded successfully. False if otherwise.
 	 */
-	private function _loadModule( $module ) {
+	private function _loadModule( $module, $activate = false ) {
 		if( $this->moduleLoaded( $module ) )
 			return false;
 
@@ -669,6 +670,10 @@ class CubePoints {
 		do_action( 'cubepoints_module_' . get_class($this) . '_prerun' );
 
 		$this->loaded_modules[$module] = new $module( $this );
+		if( $activate && method_exists( $this->loaded_modules[$module], 'activate' ) ) {
+			$this->loaded_modules[$module]->activate();
+			do_action( 'cubepoints_module_activate', $module );
+		}
 		$this->loaded_modules[$module]->main();
 
 		do_action( 'cubepoints_module_postrun', get_class($this) );
@@ -751,12 +756,7 @@ class CubePoints {
 		$activatedModules[] = $module;
 		$this->updateOption('activated_modules', $activatedModules);
 
-		if( method_exists( $this->module($module), 'activate' ) ) {
-			$this->module($module)->activate();
-			do_action( 'cubepoints_module_activate', $module );
-		}
-
-		$this->_loadModule($module);
+		$this->_loadModule($module, true);
 
 		return true;
 	} // end activateModule
