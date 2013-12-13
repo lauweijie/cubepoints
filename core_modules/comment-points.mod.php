@@ -23,7 +23,7 @@ class CubePointsCommentPoints extends CubePointsModule {
 	public function main() {
 		add_action( 'comment_post', array($this, 'newComment'), 10, 2 );
 		add_action( 'admin_init', array($this, 'admin_init') );
-		$this->cubepoints->registerTransactionType( 'comment', __('Comments', 'cubepoints'), array($this, 'txnDescComment'), 10 );
+		$this->cubepoints->registerTransactionType( 'comment', __('Comments', 'cubepoints'), array($this, 'txnDescComment') );
 	}
 
 	/**
