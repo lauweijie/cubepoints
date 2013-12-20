@@ -23,29 +23,6 @@ class CubePointsAdminPageSettings extends CubePointsModule {
 		) );
 		add_filter( 'cubepoints_admin_settings_pages', array($this, 'addSettingsPage') );
 		add_action( 'admin_init', array($this, 'admin_init') );
-		add_action( 'cubepoints_admin_menus_loaded', array($this, 'adminMenusLoaded') );
-	}
-
-	/**
-	 * Runs when all admin pages are loaded
-	 */
-	public function adminMenusLoaded( $admin_screens ) {
-		add_action( 'admin_print_styles-' . $admin_screens['cubepoints_settings'], array($this, 'adminStyles') );
-		add_action( 'admin_print_scripts-' . $admin_screens['cubepoints_settings'], array($this, 'adminScripts') );
-	}
-
-	/**
-	 * Loads CSS for the settings admin page
-	 */
-	public function adminStyles() {
-		wp_enqueue_style( 'cubepoints_admin_settings',  plugins_url( 'css/admin-settings.css', $this->cubepoints->plugin_file ) );
-	}
-
-	/**
-	 * Loads scripts for the settings admin page
-	 */
-	public function adminScripts() {
-		wp_print_scripts( 'jquery-ui-tabs' );
 	}
 
 	/**
@@ -68,8 +45,8 @@ class CubePointsAdminPageSettings extends CubePointsModule {
 	 * Filter to add a settings page
 	 */
 	public function addSettingsPage( $pages ) {
-		$pages['general'] = 'General Settings';
-		$pages['points'] = 'Points Settings';
+		$pages['general'] = 'General';
+		$pages['points'] = 'Points';
 		return $pages;
 	}
 
@@ -102,7 +79,7 @@ class CubePointsAdminPageSettings extends CubePointsModule {
 	}
 
 	/**
-	 * Callback function that sanitizes the 
+	 * Callback function that sanitizes the points name input
 	 */
 	public function cubepoints_points_name_sanitize( $val ) {
 		$val = wp_strip_all_tags($val);
@@ -117,13 +94,10 @@ class CubePointsAdminPageSettings extends CubePointsModule {
 	 */
 	public function adminPageSettings() {
 		$settings_pages = apply_filters('cubepoints_admin_settings_pages', array());
+		$section = (isset($_GET['section']) && array_key_exists($_GET['section'], $settings_pages)) ? $_GET['section'] : 'general';
 		?>
 		<div class="wrap">
-			<div id="icon-options-general" class="icon32"></div>
-			<h2>
-				<?php _e('CubePoints', 'cubepoints'); ?> <?php _e('Settings', 'cubepoints'); ?>
-			</h2>
-
+		<h2>CubePoints Settings</h2>
 			<?php
 				if ( isset( $_GET['settings-updated'] ) && $_GET['settings-updated'] == true )
 					echo '<div class="updated"><p>' . __( 'Settings updated.' ) . '</p></div>';
@@ -132,28 +106,18 @@ class CubePointsAdminPageSettings extends CubePointsModule {
 			<form name="cubepoints-settings" method="post" action="options.php">
 				<?php settings_fields('cubepoints'); ?>
 
-				<div class="ui-tabs">
-					<ul class="ui-tabs-nav">
-						<?php
-						foreach ( $settings_pages as $settings_page_slug => $settings_page )
-							echo '<li><a href="#cubepoints_' . $settings_page_slug . '">' . $settings_page . '</a></li>';
-						?>
-					</ul>
+				<h2 class="nav-tab-wrapper">
 					<?php
-					foreach ( $settings_pages as $settings_page_slug => $settings_page ) {
-						echo '<div class="ui-tabs-panel ui-tabs-hide" id="cubepoints_' . $settings_page_slug . '">';
-						echo '<h2>' . $settings_page . '</h2>';
-						do_settings_sections('cubepoints_' . $settings_page_slug);
-						echo '</div>';
-					}
+					foreach ( $settings_pages as $settings_page_slug => $settings_page )
+						echo '<a class="nav-tab' . (($settings_page_slug == $section) ? ' nav-tab-active' : '') . '" href="' . remove_query_arg('settings-updated' , add_query_arg(array('section' => $settings_page_slug))) . '">' . $settings_page . '</a>';
 					?>
-				</div>
+				</h2>
+
+				<?php do_settings_sections('cubepoints_' . $section); ?>
+
 				<p class="submit"><input name="Submit" type="submit" class="button-primary" value="<?php esc_attr_e('Save Changes'); ?>" /></p>
 			</form>
 		</div>
-		<script type="text/javascript">
-			jQuery(".ui-tabs").tabs({ fx: { opacity: "toggle", duration: "fast" } });
-		</script>
 		<?php
 	}
 
