@@ -51,7 +51,7 @@ class CubePointsPostPoints extends CubePointsModule {
 	public function admin_init() {
 		add_settings_section('posts', __('Posts', 'cubepoints'), array($this, 'postsSectionDescription'), 'cubepoints_points');
 		add_settings_field('cubepoints_post_points', __('Points Per Post', 'cubepoints'), array($this, 'postPointsField'), 'cubepoints_points', 'posts');
-		register_setting( 'cubepoints', 'cubepoints_post_points', 'intval' );
+		register_setting( 'cubepoints_points', 'cubepoints_post_points', 'intval' );
 	}
 
 	/**

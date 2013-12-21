@@ -50,9 +50,9 @@ class CubePointsDailyPoints extends CubePointsModule {
 	public function admin_init() {
 		add_settings_section('dailyPoints', __('Daily Points', 'cubepoints'), array($this, 'dailyPointsSectionDescription'), 'cubepoints_points');
 		add_settings_field('cubepoints_dailyPoints_points', __('Points', 'cubepoints'), array($this, 'dailyPointsPointsField'), 'cubepoints_points', 'dailyPoints');
-		register_setting( 'cubepoints', 'cubepoints_dailyPoints_points', 'intval' );
+		register_setting( 'cubepoints_points', 'cubepoints_dailyPoints_points', 'intval' );
 		add_settings_field('cubepoints_dailyPoints_interval', __('Time Interval (in sec)', 'cubepoints'), array($this, 'dailyPointsIntervalField'), 'cubepoints_points', 'dailyPoints');
-		register_setting( 'cubepoints', 'cubepoints_dailyPoints_interval', 'intval' );
+		register_setting( 'cubepoints_points', 'cubepoints_dailyPoints_interval', 'intval' );
 	}
 
 	/**
