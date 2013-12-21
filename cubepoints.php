@@ -9,7 +9,7 @@ Author URI: http://cubepoints.com
 Author Email: developers@cubepoints.com
 License:
 
-  Copyright 2012 CubePoints (developers@cubepoints.com)
+  Copyright 2013 CubePoints (developers@cubepoints.com)
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2, as 
