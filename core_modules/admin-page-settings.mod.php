@@ -32,13 +32,13 @@ class CubePointsAdminPageSettings extends CubePointsModule {
 		add_settings_section('points_display', __('Points Display', 'cubepoints'), array($this, 'pointsDisplaySectionDescription'), 'cubepoints_general');
 
 		add_settings_field('cubepoints_points_name', __('Name of Currency', 'cubepoints'), array($this, 'pointsNameField'), 'cubepoints_general', 'points_display');
-		register_setting( 'cubepoints_general', 'cubepoints_points_name', array($this, 'cubepoints_points_name_sanitize') );
+		register_setting('cubepoints_general', 'cubepoints_points_name', array($this, 'cubepoints_points_name_sanitize'));
 
 		add_settings_field('cubepoints_points_prefix', __('Points Prefix', 'cubepoints'), array($this, 'pointsPrefixField'), 'cubepoints_general', 'points_display');
-		register_setting( 'cubepoints_general', 'cubepoints_points_prefix' );
+		register_setting('cubepoints_general', 'cubepoints_points_prefix');
 
 		add_settings_field('cubepoints_points_suffix', __('Points Suffix', 'cubepoints'), array($this, 'pointsSuffixField'), 'cubepoints_general', 'points_display');
-		register_setting( 'cubepoints_general', 'cubepoints_points_suffix' );
+		register_setting('cubepoints_general', 'cubepoints_points_suffix');
 	}
 
 	/**

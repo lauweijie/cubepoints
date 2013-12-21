@@ -42,7 +42,7 @@ class CubePointsCommentPoints extends CubePointsModule {
 	public function admin_init() {
 		add_settings_section('comments', __('Comments', 'cubepoints'), array($this, 'commentsSectionDescription'), 'cubepoints_points');
 		add_settings_field('cubepoints_comment_points', __('Points Per Comment', 'cubepoints'), array($this, 'commentPointsField'), 'cubepoints_points', 'comments');
-		register_setting( 'cubepoints_points', 'cubepoints_comment_points', 'intval' );
+		register_setting('cubepoints_points', 'cubepoints_comment_points', 'intval');
 	}
 
 	/**
