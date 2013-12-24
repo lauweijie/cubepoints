@@ -58,6 +58,7 @@ class CubePointsPostPoints extends CubePointsModule {
 	 * Description for the points display section
 	 */
 	public function postsSectionDescription() {
+		echo '<a name="posts"></a>';
 		echo '<p>' . __('Award points to post authors when posts are published.', 'cubepoints') . '</p>';
 	}
 

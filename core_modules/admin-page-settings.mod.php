@@ -54,6 +54,7 @@ class CubePointsAdminPageSettings extends CubePointsModule {
 	 * Description for the points display section
 	 */
 	public function pointsDisplaySectionDescription() {
+		echo '<a name="pointsdisplay"></a>';
 		echo '<p>' . __('The points prefix and suffix will be prepended and appended to the point value when it is displayed to the users.', 'cubepoints') . '</p>';
 	}
 

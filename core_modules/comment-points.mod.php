@@ -49,6 +49,7 @@ class CubePointsCommentPoints extends CubePointsModule {
 	 * Description for the points display section
 	 */
 	public function commentsSectionDescription() {
+		echo '<a name="comments"></a>';
 		echo '<p>' . __('Award points to users for making comments on your site.', 'cubepoints') . '</p>';
 	}
 

@@ -41,7 +41,7 @@ class CubePointsDailyPoints extends CubePointsModule {
 	 * Settings link hook
 	 */
 	public function settings_link() {
-		return admin_url('admin.php?page=cubepoints_settings#cubepoints_points');
+		return admin_url('admin.php?page=cubepoints_settings&section=points#dailypoints');
 	}
 
 	/**
@@ -59,6 +59,7 @@ class CubePointsDailyPoints extends CubePointsModule {
 	 * Description for the points display section
 	 */
 	public function dailyPointsSectionDescription() {
+		echo '<a name="dailypoints"></a>';
 		echo '<p>' . __('Award points to users for visiting your site hourly, daily or for every specific interval.', 'cubepoints') . '</p>';
 	}
 
